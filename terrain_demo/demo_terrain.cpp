@@ -5,7 +5,11 @@
 #endif
 
 #include <windows.h>
-#include "wnd_app.h"
+#include "dx_wnd_app.h"
+
+void Render(wnd_app_c* wnd) {
+    auto hwnd = wnd->get_hwnd();
+}
 
 int WINAPI WinMain(
     HINSTANCE hInstance,
@@ -14,6 +18,9 @@ int WINAPI WinMain(
     int       nCmdShow
 )
 {
-    wnd_app_c App(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
-    return wnd_app_c::loop(&App, nullptr);
+    dx_wnd_app_c App(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+
+    App.create_pipeline(D3D_FEATURE_LEVEL_12_0);
+
+    return App.render_loop();
 }

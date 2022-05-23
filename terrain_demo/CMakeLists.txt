@@ -5,6 +5,7 @@ file(
         ./demo_terrain.cpp
         ./demo_terrain.rc
         ./wnd_app.cpp
+        ./dx_wnd_app.cpp
 )
 
 add_executable (demo_terrain WIN32 ${APP_SOURCES})

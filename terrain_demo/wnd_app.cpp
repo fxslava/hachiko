@@ -31,7 +31,7 @@ void wnd_app_c::create_window(HINSTANCE instance, HINSTANCE prev_instance, LPSTR
         get_title_name(),
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT,
-        500, 100,
+        1920, 1080,
         NULL,
         NULL,
         instance,
@@ -63,11 +63,9 @@ LRESULT CALLBACK wnd_app_c::wnd_proc(HWND hWnd, UINT message, WPARAM wParam, LPA
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
-    default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
     }
 
-    return 0;
+    return DefWindowProc(hWnd, message, wParam, lParam);
 }
 
 int wnd_app_c::loop(wnd_app_c* ctx, render_callback_t render_cb) {
@@ -76,20 +74,30 @@ int wnd_app_c::loop(wnd_app_c* ctx, render_callback_t render_cb) {
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
+
+            if (render_cb) render_cb(ctx);
         }
 
         if (msg.message == WM_QUIT)  break;
-        if (render_cb) render_cb(ctx);
     }
+    ctx->on_destroy();
 
     return static_cast<int>(msg.wParam);
 }
 
+
 LRESULT wnd_app_c::on_paint() {
-    TCHAR greeting[] = L"Hello, Windows desktop!";
+    WCHAR buffer[256];
+    swprintf_s(buffer, 256, L"mouse X: %d\tmouse Y: %d", mouse_x, mouse_y);
+
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(wnd_handle, &ps);
-    TextOut(hdc, 5, 5, greeting, wcslen(greeting));
+    TextOut(hdc, 5, 5, buffer, wcslen(buffer));
     EndPaint(wnd_handle, &ps);
     return 0;
+}
+
+
+void wnd_app_c::on_destroy() {
+
 }
