@@ -20,7 +20,7 @@ int WINAPI WinMain(
 {
     dx_wnd_app_c App(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 
-    App.create_pipeline(D3D_FEATURE_LEVEL_12_0);
+    App.create_pipline(D3D_FEATURE_LEVEL_12_0);
 
     return App.render_loop();
 }

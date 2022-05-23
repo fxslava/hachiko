@@ -14,6 +14,18 @@ add_library(
 	${PROJECT_NAME}
 	${SOURCES}
 	)
+
+set(
+    DEPS_LIBRARIES
+        dxgi
+		d3d12
+)
+
+target_link_libraries(
+	${PROJECT_NAME}
+	PRIVATE
+		${DEPS_LIBRARIES}
+	)
 	
 target_include_directories(${PROJECT_NAME} PRIVATE .)
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "libs")
