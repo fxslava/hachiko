@@ -1,4 +1,5 @@
 #include "hch_renderer.h"
+#include "d3dx12.h"
 
 #define CK(v) if (FAILED(hres = (v))) return hres
 
@@ -8,10 +9,17 @@ HRESULT hch_render_device_c::create_pipeline(const D3D_FEATURE_LEVEL feature_lev
     HRESULT hres;
     CK(create_dxgi_factory());
 
+    ComPtr<IDXGIAdapter> preferred_adapter;
     auto adapters = enum_adapters(feature_level);
     if (!adapters.empty()) {
-        CK(D3D12CreateDevice(adapters[0], feature_level, IID_PPV_ARGS(&d3d_device)));
+        adapters[0]->QueryInterface(IID_PPV_ARGS(&preferred_adapter));
+        CK(D3D12CreateDevice(preferred_adapter.Get(), feature_level, IID_PPV_ARGS(&d3d_device)));
     }
+
+    D3D12MA::ALLOCATOR_DESC allocatorDesc = {};
+    allocatorDesc.pDevice = d3d_device.Get();
+    allocatorDesc.pAdapter = preferred_adapter.Get();
+    CK(D3D12MA::CreateAllocator(&allocatorDesc, &gpu_allocator));
 
     dxgi_factory->MakeWindowAssociation(wnd_handle, DXGI_MWA_NO_ALT_ENTER);
 
@@ -25,29 +33,26 @@ HRESULT hch_render_device_c::create_pipeline(const D3D_FEATURE_LEVEL feature_lev
 }
 
 
+void hch_render_device_c::destroy_pipeline() {
+    wait_for_prev_frame();
+    CloseHandle(frame_fence_event);
+    gpu_allocator->Release();
+}
+
+
 HRESULT hch_render_device_c::prerecord_render() {
     HRESULT hres;
     CK(d3d_command_allocator->Reset());
     CK(d3d_direct_command_list->Reset(d3d_command_allocator.Get(), d3d_pipeline_state.Get()));
 
-    D3D12_RESOURCE_BARRIER resource_barrier;
-    resource_barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    resource_barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-    resource_barrier.Transition.pResource = d3d_render_targets[frame_idx].Get();
-    resource_barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    resource_barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-    resource_barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    d3d_direct_command_list->ResourceBarrier(1, &resource_barrier);
+    d3d_direct_command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(d3d_render_targets[frame_idx].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
-    D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = d3d_rtv_heap->GetCPUDescriptorHandleForHeapStart();
-    rtvHandle.ptr = SIZE_T(INT64(rtvHandle.ptr) + INT64(frame_idx) * INT64(rtv_desc_size));
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(d3d_rtv_heap->GetCPUDescriptorHandleForHeapStart(), frame_idx, rtv_desc_size);
 
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-    d3d_direct_command_list->ClearRenderTargetView(rtvHandle, clearColor, 0, nullptr);
+    d3d_direct_command_list->ClearRenderTargetView(rtv_handle, clearColor, 0, nullptr);
 
-    resource_barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    resource_barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-    d3d_direct_command_list->ResourceBarrier(1, &resource_barrier);
+    d3d_direct_command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(d3d_render_targets[frame_idx].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
     CK(d3d_direct_command_list->Close());
     return S_OK;
@@ -68,12 +73,6 @@ HRESULT hch_render_device_c::on_render() {
 
     CK(wait_for_prev_frame());
     return S_OK;
-}
-
-
-void hch_render_device_c::destroy_pipeline() {
-    wait_for_prev_frame();
-    CloseHandle(frame_fence_event);
 }
 
 
@@ -171,7 +170,7 @@ HRESULT hch_render_device_c::create_render_target_view(const UINT frame_num) {
     assert(frame_num != 0);
 
     // Create frame resources.
-    D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle = d3d_rtv_heap->GetCPUDescriptorHandleForHeapStart();
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(d3d_rtv_heap->GetCPUDescriptorHandleForHeapStart());
 
     // Create a RTV for each frame.
     for (UINT i = 0; i < frame_num; i++) {
@@ -182,7 +181,7 @@ HRESULT hch_render_device_c::create_render_target_view(const UINT frame_num) {
 
         d3d_render_targets.push_back(render_target);
         d3d_device->CreateRenderTargetView(render_target, nullptr, rtv_handle);
-        rtv_handle.ptr = SIZE_T(INT64(rtv_handle.ptr) + rtv_desc_size);
+        rtv_handle.Offset(1, rtv_desc_size);
     }
     return S_OK;
 }

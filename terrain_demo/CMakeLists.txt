@@ -1,6 +1,6 @@
 project(demo_terrain)
 
-include_directories(../engine/core/)
+include_directories(../engine/api/include)
 
 file(
     GLOB APP_SOURCES

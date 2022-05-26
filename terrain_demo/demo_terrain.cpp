@@ -7,10 +7,6 @@
 #include <windows.h>
 #include "dx_wnd_app.h"
 
-void Render(wnd_app_c* wnd) {
-    auto hwnd = wnd->get_hwnd();
-}
-
 int WINAPI WinMain(
     HINSTANCE hInstance,
     HINSTANCE hPrevInstance,

@@ -1,13 +1,12 @@
 #pragma once
 #include <assert.h>
 #include <vector>
-#include <dxgi1_6.h>
-#include <d3d12.h>
-#include <wrl.h>
+#include "hachiko_api.h"
+#include "D3D12MemAlloc.h"
 
 using Microsoft::WRL::ComPtr;
 
-class hch_render_device_c {
+class hch_render_device_c : public hch_render_device_i {
 public:
 	HRESULT create_pipeline(D3D_FEATURE_LEVEL feature_level, HWND wnd_handle);
 	HRESULT wait_for_prev_frame();
@@ -43,6 +42,9 @@ private:
 	HANDLE frame_fence_event = 0;
 	UINT64 frame_fence_value = 0;
 	ComPtr<ID3D12Fence> frame_fance;
+
+	// Memory managment
+	D3D12MA::Allocator*	gpu_allocator;
 
 	// hWnd
 	HWND wnd_handle = 0;

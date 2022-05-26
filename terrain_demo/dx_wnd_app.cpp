@@ -7,21 +7,25 @@
 
 dx_wnd_app_c::dx_wnd_app_c(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int cmd_show) {
     wnd_app_c::create_window(instance, prev_instance, cmd_line, cmd_show);
+    create_render_device(d3d_render_device);
 }
 
+dx_wnd_app_c::~dx_wnd_app_c() {
+    destroy_render_device(d3d_render_device);
+}
 
 void dx_wnd_app_c::create_pipline(D3D_FEATURE_LEVEL feature_level) {
-    d3d_render_device.create_pipeline(feature_level, wnd_handle);
+    d3d_render_device->create_pipeline(feature_level, wnd_handle);
 }
 
 
 HRESULT dx_wnd_app_c::on_render() {
-    return d3d_render_device.on_render();
+    return d3d_render_device->on_render();
 }
 
 
 void dx_wnd_app_c::on_destroy() {
-    d3d_render_device.destroy_pipeline();
+    d3d_render_device->destroy_pipeline();
 }
 
 

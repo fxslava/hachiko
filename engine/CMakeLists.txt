@@ -1,8 +1,19 @@
 project(hachiko_engine_lib)
 
+include_directories(
+	core/
+	core/thirdparty/directx/
+	core/thirdparty/wsl/
+	core/thirdparty/dxguids/
+	core/thirdparty/d3d12memalloc/
+	api/include/
+)
+
 file(
     GLOB SOURCES
         ./core/hch_renderer.cpp
+		./core/thirdparty/d3d12memalloc/D3D12MemAlloc.cpp
+		./api/src/hachiko_api.cpp
 )
 
 set(

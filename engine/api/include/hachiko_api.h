@@ -1,0 +1,16 @@
+#pragma once
+#include <dxgi1_6.h>
+#include <d3d12.h>
+#include <wrl.h>
+
+class hch_render_device_i {
+public:
+	virtual HRESULT create_pipeline(D3D_FEATURE_LEVEL feature_level, HWND wnd_handle) = 0;
+	virtual HRESULT wait_for_prev_frame() = 0;
+	virtual HRESULT prerecord_render() = 0;
+	virtual HRESULT on_render() = 0;
+	virtual void destroy_pipeline() = 0;
+};
+
+void create_render_device(hch_render_device_i*& renderer);
+void destroy_render_device(hch_render_device_i* renderer);
