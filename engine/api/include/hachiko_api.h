@@ -25,14 +25,18 @@ void destroy_render_device(renderer_i* renderer);
 typedef int32_t ACTION_ID;
 constexpr ACTION_ID INVALID_ACTION_ID = -1;
 
-struct CONTROLLER_ACTION_STATE
+struct INPUT_CONTROLLER_ACTION_STATE
 {
-	UINT32    duration = 0;
-	UINT32    press_count = 0;
-	ACTION_ID action_id = INVALID_ACTION_ID;
+	BOOL      state        = false;
+	BOOL      double_clk   = false;
+	BOOL      double_tap   = false;
+	UINT32    duration     = 0;
+	UINT32    off_duration = 0;
+	UINT32    press_count  = 0;
+	ACTION_ID action_id    = INVALID_ACTION_ID;
 };
 
-struct CONTROLLER_MOUSE_STATE
+struct INPUT_CONTROLLER_MOUSE_STATE
 {
 	INT32     mouse_X = -1;
 	INT32     mouse_Y = -1;
@@ -40,16 +44,23 @@ struct CONTROLLER_MOUSE_STATE
 	INT32     mouse_speed_Y = 0;
 };
 
-using action_event_c         = game_event_c   <ACTION_ID, CONTROLLER_ACTION_STATE, bool>;
-using action_event_handler_c = event_handler_i<ACTION_ID, CONTROLLER_ACTION_STATE, bool>;
+struct INPUT_CONTROLLER_CONFIG
+{
+	INT32     double_tap_duration_threashold_ms;
+};
+
+using action_event_c         = game_event_c   <ACTION_ID, INPUT_CONTROLLER_ACTION_STATE>;
+using action_event_handler_c = event_handler_i<ACTION_ID, INPUT_CONTROLLER_ACTION_STATE>;
 
 class input_controller_i
 {
 public:
-	virtual bool get_action_state(ACTION_ID action) = 0;
-	virtual CONTROLLER_MOUSE_STATE get_mouse_state() = 0;
+	virtual void init(INPUT_CONTROLLER_CONFIG config) = 0;
+	virtual INPUT_CONTROLLER_ACTION_STATE get_action_state(ACTION_ID action) = 0;
+	virtual INPUT_CONTROLLER_MOUSE_STATE get_mouse_state() = 0;
 	virtual void subscribe(action_event_handler_c* handler, ACTION_ID action) = 0;
 	virtual void unsubscribe(action_event_handler_c* handler, ACTION_ID action) = 0;
+	virtual void every_frame_update(float elapsed_time) = 0;
 };
 
 class mouse_keyboard_listener_i
@@ -76,7 +87,6 @@ class mouse_keyboard_input_controller_i : public input_controller_i, public mous
 {
 public:
 	virtual void register_action_id(MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, bool shift_key, bool ctrl_key, ACTION_ID action) = 0;
-	virtual void update() = 0;
 };
 
 void create_mouse_keyboard_input_controller(mouse_keyboard_input_controller_i*& input_controller);

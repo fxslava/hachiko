@@ -34,13 +34,14 @@ public:
 	LRESULT on_wm_mousewheel(WPARAM wParam, LPARAM lParam);
 	LRESULT on_wm_mousemove(WPARAM wParam, LPARAM lParam);
 
-	bool get_action_state(ACTION_ID action);
-	CONTROLLER_MOUSE_STATE get_mouse_state();
-
-	void register_action_id(MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, bool shift_key, bool ctrl_key, ACTION_ID action);
-	void update();
+	void init(INPUT_CONTROLLER_CONFIG config);
+	INPUT_CONTROLLER_ACTION_STATE get_action_state(ACTION_ID action);
+	INPUT_CONTROLLER_MOUSE_STATE get_mouse_state();
 	void subscribe(action_event_handler_c* handler, ACTION_ID action);
 	void unsubscribe(action_event_handler_c* handler, ACTION_ID action);
+	void every_frame_update(float elapsed_time);
+
+	void register_action_id(MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, bool shift_key, bool ctrl_key, ACTION_ID action);
 private:
 	enum CTRL_SHIFT_STATE
 	{
@@ -54,11 +55,29 @@ private:
 	struct ACTION_DESC
 	{
 		action_event_c event;
-		ACTION_ID action_id;
-		VIRTUAL_KEY_MAP vk_map[CTRL_SHIFT_STATE_NUM];
-		bool state;
-		bool dbl_click;
+		ACTION_ID action_id = INVALID_ACTION_ID;
+		VIRTUAL_KEY_MAP vk_map[CTRL_SHIFT_STATE_NUM] = { { 0, 0 }, { 0, 0 }, { 0, 0 }, { 0, 0 } };
+		bool state = false;
+		bool dbl_click = false;
+		bool dbl_tap = false;
+		float duration = 0.0f;
+		float off_duration = 0.0f;
+		uint32_t press_count = 0;
 	};
+
+	friend INPUT_CONTROLLER_ACTION_STATE action_state_init(mouse_keyboard_game_controller_c::ACTION_DESC* action);
+
+	void update_action_desc_on_set(ACTION_DESC* action)
+	{
+		if (action->off_duration > double_tap_duration_threashold) {
+			action->dbl_tap = true;
+		}
+	}
+
+	void update_action_desc_on_reset(ACTION_DESC* action)
+	{
+		action->dbl_tap = false;
+	}
 
 	enum UPDATE_ACTION_PROC
 	{
@@ -71,4 +90,6 @@ private:
 
 	std::vector<ACTION_DESC*> actions_map;
 	std::map<ACTION_ID, ACTION_DESC*> actions_desc;
+
+	float double_tap_duration_threashold = 0.0f;
 };

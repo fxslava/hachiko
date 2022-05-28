@@ -17,9 +17,9 @@ public:
 			controller->subscribe(this, action_id);
 	}
 
-	void call(ACTION_ID action_id, CONTROLLER_ACTION_STATE action_state, bool state)
+	void call(ACTION_ID action_id, INPUT_CONTROLLER_ACTION_STATE action_state)
 	{
-		if (state) {
+		if (action_state.state) {
 			switch (action_id)
 			{
 			case ACTION_CAMERA_MOVE_UP:

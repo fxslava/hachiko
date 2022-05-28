@@ -97,12 +97,32 @@ LRESULT mouse_keyboard_game_controller_c::on_wm_mousemove(WPARAM wParam, LPARAM 
 	return 0;
 }
 
-bool mouse_keyboard_game_controller_c::get_action_state(ACTION_ID action) {
-	return actions_desc[action]->state;
+void mouse_keyboard_game_controller_c::init(INPUT_CONTROLLER_CONFIG config) {
+	double_tap_duration_threashold = static_cast<float>(config.double_tap_duration_threashold_ms) * 0.001f;
 }
 
-CONTROLLER_MOUSE_STATE mouse_keyboard_game_controller_c::get_mouse_state() {
-	CONTROLLER_MOUSE_STATE state;
+INPUT_CONTROLLER_ACTION_STATE action_state_init(mouse_keyboard_game_controller_c::ACTION_DESC* action)
+{
+	INPUT_CONTROLLER_ACTION_STATE state;
+	state.action_id = action->action_id;
+	state.state = action->state;
+	state.double_clk = action->dbl_click;
+	state.double_tap = action->dbl_tap;
+	state.duration = static_cast<int>(action->duration / 0.001f);
+	state.off_duration = static_cast<int>(action->off_duration / 0.001f);
+	state.press_count = action->press_count;
+	return state;
+}
+
+INPUT_CONTROLLER_ACTION_STATE mouse_keyboard_game_controller_c::get_action_state(ACTION_ID action) {
+	INPUT_CONTROLLER_ACTION_STATE state;
+	if (is_action_id_available(action))
+		state = action_state_init(actions_desc[action]);
+	return state;
+}
+
+INPUT_CONTROLLER_MOUSE_STATE mouse_keyboard_game_controller_c::get_mouse_state() {
+	INPUT_CONTROLLER_MOUSE_STATE state;
 	return state;
 }
 
@@ -145,19 +165,34 @@ void mouse_keyboard_game_controller_c::update_actions(MOUSE_KEYBOARD_VIRTUAL_KEY
 		if (((action->vk_map[state].low_value  & mask.low_value)  != 0) ||
 			((action->vk_map[state].high_value & mask.high_value) != 0)) {
 			switch (proc) {
-			case UPDATE_ACTION_SET:   action->state = true;  break;
+			case UPDATE_ACTION_SET:   action->state = true; action->press_count++; break;
 			case UPDATE_ACTION_RESET: action->state = false; break;
 			case UPDATE_ACTION_DBLCLK:action->dbl_click = true; break;
 			}
 			if (call_action) {
-				CONTROLLER_ACTION_STATE state;
-				action->event(action->action_id, state, action->state);
+				if (action->state)
+					update_action_desc_on_set(action);
+				else
+					update_action_desc_on_reset(action);
+
+				action->event(action->action_id, action_state_init(action));
 			}
 		}
 	}
 }
 
-void mouse_keyboard_game_controller_c::update() {
+void mouse_keyboard_game_controller_c::every_frame_update(float elapsed_time) {
+	for (const auto& action : actions_map) {
+		if (action->state) {
+			update_action_desc_on_set(action);
+			action->duration += elapsed_time;
+			action->off_duration = 0.0f;
+		} else {
+			update_action_desc_on_reset(action);
+			action->duration += 0.0f;
+			action->off_duration += elapsed_time;
+		}
+	}
 }
 
 void mouse_keyboard_game_controller_c::subscribe(action_event_handler_c* handler, ACTION_ID action) {

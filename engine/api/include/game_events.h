@@ -5,8 +5,7 @@ template<class ...args_t>
 class event_handler_i
 {
 public:
-    event_handler_i() {}
-    virtual void call(args_t... args) {};
+    virtual void call(args_t... args) = 0;
 };
 
 template<class ...args_t>
