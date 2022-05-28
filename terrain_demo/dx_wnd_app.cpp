@@ -7,19 +7,19 @@
 dx_wnd_app_c::dx_wnd_app_c(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int cmd_show) {
     wnd_app_c::create_window(instance, prev_instance, cmd_line, cmd_show);
     create_render_device(d3d_renderer);
-    create_mouse_keyboard_game_controller(mouse_keyboard_game_controller);
+    create_mouse_keyboard_input_controller(mouse_keyboard_input_controller);
 
-    mouse_keyboard_game_controller->register_action_id(VIRTUAL_KEY_UP,    false, true, ACTION_CAMERA_MOVE_UP);
-    mouse_keyboard_game_controller->register_action_id(VIRTUAL_KEY_DOWN,  false, false, ACTION_CAMERA_MOVE_DOWN);
-    mouse_keyboard_game_controller->register_action_id(VIRTUAL_KEY_LEFT,  false, false, ACTION_CAMERA_MOVE_LEFT);
-    mouse_keyboard_game_controller->register_action_id(VIRTUAL_KEY_RIGHT, false, false, ACTION_CAMERA_MOVE_RIGHT);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_UP,    false, false, ACTION_CAMERA_MOVE_UP);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_DOWN,  false, false, ACTION_CAMERA_MOVE_DOWN);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_LEFT,  false, false, ACTION_CAMERA_MOVE_LEFT);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_RIGHT, false, false, ACTION_CAMERA_MOVE_RIGHT);
 
-    view_camera.subscribe(mouse_keyboard_game_controller);
+    view_camera.subscribe(mouse_keyboard_input_controller);
 }
 
 dx_wnd_app_c::~dx_wnd_app_c() {
     destroy_render_device(d3d_renderer);
-    destroy_mouse_keyboard_game_controller(mouse_keyboard_game_controller);
+    destroy_mouse_keyboard_input_controller(mouse_keyboard_input_controller);
 }
 
 void dx_wnd_app_c::create_pipline(D3D_FEATURE_LEVEL feature_level) {
