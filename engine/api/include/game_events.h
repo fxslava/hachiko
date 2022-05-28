@@ -26,13 +26,13 @@ public:
             handler->call(args...);
     }
 
-    void operator+=(event_handler_c& event_handler) {
-        event_handlers.push_back(&event_handler);
+    void operator+=(event_handler_c* event_handler) {
+        event_handlers.push_back(event_handler);
     }
 
-    void operator-=(event_handler_c& event_handler) {
-        event_handlers.push_back(&event_handler);
-        auto to_remove = &event_handler;
+    void operator-=(event_handler_c* event_handler) {
+        event_handlers.push_back(event_handler);
+        auto to_remove = event_handler;
     	auto pred = [to_remove](event_handler_c* handler)
     	{
     		return handler == to_remove;

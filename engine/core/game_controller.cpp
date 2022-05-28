@@ -108,25 +108,26 @@ CONTROLLER_MOUSE_STATE mouse_keyboard_game_controller_c::get_mouse_state() {
 
 mouse_keyboard_game_controller_c::mouse_keyboard_game_controller_c()
 {
-	for (auto& map : actions_map) {
+	for (auto& action : actions_map) {
 		for (int i = 0; i < CTRL_SHIFT_STATE_NUM; i++) {
-			map.vk_map[i].low_value = 0;
-			map.vk_map[i].high_value = 0;
+			action->vk_map[i].low_value = 0;
+			action->vk_map[i].high_value = 0;
 		}
-		map.state = false;
+		action->state = false;
 	}
 }
 
 void mouse_keyboard_game_controller_c::register_action_id(const MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, const bool shift_key, const bool ctrl_key, const ACTION_ID action) {
 
-	actions_map.emplace_back();
-	const auto action_desc = &actions_map.back();
+	auto* action_desc = new ACTION_DESC;
 
 	const VIRTUAL_KEY_MAP mask = virtual_key_bitmask[vitrtual_key];
 	const auto state = static_cast<CTRL_SHIFT_STATE>((ctrl_key ? 1 : 0) + (shift_key ? 2 : 0));
 	action_desc->vk_map[state].low_value  |= mask.low_value;
 	action_desc->vk_map[state].high_value |= mask.high_value;
+	action_desc->action_id = action;
 
+	actions_map.push_back(action_desc);
 	actions_desc[action] = action_desc;
 }
 
@@ -134,15 +135,16 @@ void mouse_keyboard_game_controller_c::update_actions(MOUSE_KEYBOARD_VIRTUAL_KEY
 	VIRTUAL_KEY_MAP mask = virtual_key_bitmask[vitrtual_key];
 	const auto state = static_cast<CTRL_SHIFT_STATE>((ctrl_key ? 1 : 0) + (shift_key ? 2 : 0));
 	for (auto& action : actions_map) {
-		if (((action.vk_map[state].low_value  & mask.low_value)  != 0) ||
-			((action.vk_map[state].high_value & mask.high_value) != 0)) {
+		if (((action->vk_map[state].low_value  & mask.low_value)  != 0) ||
+			((action->vk_map[state].high_value & mask.high_value) != 0)) {
 			switch (proc) {
-			case UPDATE_ACTION_SET:   action.state = true;  break;
-			case UPDATE_ACTION_RESET: action.state = false; break;
-			case UPDATE_ACTION_DBLCLK:action.dbl_click = true; break;
+			case UPDATE_ACTION_SET:   action->state = true;  break;
+			case UPDATE_ACTION_RESET: action->state = false; break;
+			case UPDATE_ACTION_DBLCLK:action->dbl_click = true; break;
 			}
 			if (call_action) {
-				action.event(this, action.state);
+				CONTROLLER_ACTION_STATE state;
+				action->event(action->action_id, state, action->state);
 			}
 		}
 	}
@@ -151,12 +153,12 @@ void mouse_keyboard_game_controller_c::update_actions(MOUSE_KEYBOARD_VIRTUAL_KEY
 void mouse_keyboard_game_controller_c::update() {
 }
 
-void mouse_keyboard_game_controller_c::subscribe(action_event_handler_c& handler, ACTION_ID action) {
-	const auto desc = actions_desc[action];
+void mouse_keyboard_game_controller_c::subscribe(action_event_handler_c* handler, ACTION_ID action) {
+	auto* desc = actions_desc[action];
 	desc->event += handler;
 }
 
-void mouse_keyboard_game_controller_c::unsubscribe(action_event_handler_c& handler, ACTION_ID action) {
-	const auto desc = actions_desc[action];
+void mouse_keyboard_game_controller_c::unsubscribe(action_event_handler_c* handler, ACTION_ID action) {
+	auto* desc = actions_desc[action];
 	desc->event -= handler;
 }

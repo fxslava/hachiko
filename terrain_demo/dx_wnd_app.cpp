@@ -4,11 +4,17 @@
 
 #define CK(v) if (FAILED(hres = (v))) return hres
 
-
 dx_wnd_app_c::dx_wnd_app_c(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int cmd_show) {
     wnd_app_c::create_window(instance, prev_instance, cmd_line, cmd_show);
     create_render_device(d3d_renderer);
     create_mouse_keyboard_game_controller(mouse_keyboard_game_controller);
+
+    mouse_keyboard_game_controller->register_action_id(VIRTUAL_KEY_UP,    false, false, ACTION_CAMERA_MOVE_UP);
+    mouse_keyboard_game_controller->register_action_id(VIRTUAL_KEY_DOWN,  false, false, ACTION_CAMERA_MOVE_DOWN);
+    mouse_keyboard_game_controller->register_action_id(VIRTUAL_KEY_LEFT,  false, false, ACTION_CAMERA_MOVE_LEFT);
+    mouse_keyboard_game_controller->register_action_id(VIRTUAL_KEY_RIGHT, false, false, ACTION_CAMERA_MOVE_RIGHT);
+
+    view_camera.subscribe(mouse_keyboard_game_controller);
 }
 
 dx_wnd_app_c::~dx_wnd_app_c() {

@@ -22,9 +22,6 @@ void destroy_render_device(renderer_i* renderer);
 #include "game_controller_api.h"
 #include "game_events.h"
 
-using action_event_c = game_event_c<const void*, bool>;
-using action_event_handler_c = event_handler_i<const void*, bool>;
-
 typedef int32_t ACTION_ID;
 constexpr ACTION_ID INVALID_ACTION_ID = -1;
 
@@ -43,11 +40,16 @@ struct CONTROLLER_MOUSE_STATE
 	INT32     mouse_speed_Y = 0;
 };
 
+using action_event_c         = game_event_c   <ACTION_ID, CONTROLLER_ACTION_STATE, bool>;
+using action_event_handler_c = event_handler_i<ACTION_ID, CONTROLLER_ACTION_STATE, bool>;
+
 class game_controller_i
 {
 public:
 	virtual bool get_action_state(ACTION_ID action) = 0;
 	virtual CONTROLLER_MOUSE_STATE get_mouse_state() = 0;
+	virtual void subscribe(action_event_handler_c* handler, ACTION_ID action) = 0;
+	virtual void unsubscribe(action_event_handler_c* handler, ACTION_ID action) = 0;
 };
 
 class mouse_keyboard_listener_i
@@ -75,8 +77,6 @@ class mouse_keyboard_game_controller_i : public game_controller_i, public mouse_
 public:
 	virtual void register_action_id(MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, bool shift_key, bool ctrl_key, ACTION_ID action) = 0;
 	virtual void update() = 0;
-	virtual void subscribe(action_event_handler_c& handler, ACTION_ID action) = 0;
-	virtual void unsubscribe(action_event_handler_c& handler, ACTION_ID action) = 0;
 };
 
 void create_mouse_keyboard_game_controller(mouse_keyboard_game_controller_i*& game_controller);

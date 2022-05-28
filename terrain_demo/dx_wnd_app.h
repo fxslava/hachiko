@@ -4,6 +4,7 @@
 #include <d3d12.h>
 #include "wnd_app.h"
 #include "hachiko_api.h"
+#include "game_camera.h"
 
 class dx_wnd_app_c : public wnd_app_c
 {
@@ -39,5 +40,7 @@ protected:
 	static void static_render(wnd_app_c* wnd);
 	renderer_i* d3d_renderer = nullptr;
 	mouse_keyboard_game_controller_i* mouse_keyboard_game_controller = nullptr;
+
+	render_camera_c view_camera;
 };
 

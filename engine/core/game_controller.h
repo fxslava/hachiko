@@ -39,8 +39,8 @@ public:
 
 	void register_action_id(MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, bool shift_key, bool ctrl_key, ACTION_ID action);
 	void update();
-	void subscribe(action_event_handler_c& handler, ACTION_ID action);
-	void unsubscribe(action_event_handler_c& handler, ACTION_ID action);
+	void subscribe(action_event_handler_c* handler, ACTION_ID action);
+	void unsubscribe(action_event_handler_c* handler, ACTION_ID action);
 private:
 	enum CTRL_SHIFT_STATE
 	{
@@ -54,6 +54,7 @@ private:
 	struct ACTION_DESC
 	{
 		action_event_c event;
+		ACTION_ID action_id;
 		VIRTUAL_KEY_MAP vk_map[CTRL_SHIFT_STATE_NUM];
 		bool state;
 		bool dbl_click;
@@ -67,6 +68,6 @@ private:
 	};
 	void update_actions(MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, bool shift_key, bool ctrl_key, UPDATE_ACTION_PROC proc, bool call_action = true);
 
-	std::vector<ACTION_DESC> actions_map;
+	std::vector<ACTION_DESC*> actions_map;
 	std::map<ACTION_ID, ACTION_DESC*> actions_desc;
 };
