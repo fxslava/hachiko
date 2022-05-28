@@ -11,7 +11,7 @@ constexpr ACTION_ID ACTION_CAMERA_END        = 4;
 class render_camera_c : public action_event_handler_c
 {
 public:
-	void subscribe(game_controller_i* controller)
+	void subscribe(input_controller_i* controller)
 	{
 		for (int action_id = ACTION_CAMERA_BEGIN; action_id < ACTION_CAMERA_END; action_id++)
 			controller->subscribe(this, action_id);

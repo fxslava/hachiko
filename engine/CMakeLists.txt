@@ -11,7 +11,7 @@ include_directories(
 
 file(
     GLOB SOURCES
-	    ./core/game_controller.cpp
+	    ./core/input_controller.cpp
         ./core/renderer.cpp
 		./core/thirdparty/d3d12memalloc/D3D12MemAlloc.cpp
 		./api/src/hachiko_api.cpp

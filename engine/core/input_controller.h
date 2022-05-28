@@ -13,7 +13,7 @@ struct VIRTUAL_KEY_MAP
 	uint64_t high_value = 0;
 };
 
-class mouse_keyboard_game_controller_c : public mouse_keyboard_game_controller_i
+class mouse_keyboard_game_controller_c : public mouse_keyboard_input_controller_i
 {
 public:
 	mouse_keyboard_game_controller_c();

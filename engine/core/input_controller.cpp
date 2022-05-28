@@ -1,4 +1,4 @@
-#include "game_controller.h"
+#include "input_controller.h"
 #include "virtual_keys.hpp"
 
 #define GET_SHIFT_STATE (GetAsyncKeyState(VK_LSHIFT) || GetAsyncKeyState(VK_RSHIFT))
@@ -132,7 +132,7 @@ void mouse_keyboard_game_controller_c::register_action_id(const MOUSE_KEYBOARD_V
 }
 
 void mouse_keyboard_game_controller_c::update_actions(MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, bool shift_key, bool ctrl_key, UPDATE_ACTION_PROC proc, bool call_action) {
-	VIRTUAL_KEY_MAP mask = virtual_key_bitmask[vitrtual_key];
+	const VIRTUAL_KEY_MAP mask = virtual_key_bitmask[vitrtual_key];
 	const auto state = static_cast<CTRL_SHIFT_STATE>((ctrl_key ? 1 : 0) + (shift_key ? 2 : 0));
 	for (auto& action : actions_map) {
 		if (((action->vk_map[state].low_value  & mask.low_value)  != 0) ||

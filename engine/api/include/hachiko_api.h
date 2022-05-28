@@ -19,7 +19,7 @@ void create_render_device(renderer_i*& renderer);
 void destroy_render_device(renderer_i* renderer);
 
 // <<---------------------------------- GAME CONTROLLER ---------------------------------->>
-#include "game_controller_api.h"
+#include "input_controller_api.h"
 #include "game_events.h"
 
 typedef int32_t ACTION_ID;
@@ -43,7 +43,7 @@ struct CONTROLLER_MOUSE_STATE
 using action_event_c         = game_event_c   <ACTION_ID, CONTROLLER_ACTION_STATE, bool>;
 using action_event_handler_c = event_handler_i<ACTION_ID, CONTROLLER_ACTION_STATE, bool>;
 
-class game_controller_i
+class input_controller_i
 {
 public:
 	virtual bool get_action_state(ACTION_ID action) = 0;
@@ -72,12 +72,12 @@ public:
 	virtual LRESULT on_wm_mousemove(WPARAM wParam, LPARAM lParam) = 0;
 };
 
-class mouse_keyboard_game_controller_i : public game_controller_i, public mouse_keyboard_listener_i
+class mouse_keyboard_input_controller_i : public input_controller_i, public mouse_keyboard_listener_i
 {
 public:
 	virtual void register_action_id(MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, bool shift_key, bool ctrl_key, ACTION_ID action) = 0;
 	virtual void update() = 0;
 };
 
-void create_mouse_keyboard_game_controller(mouse_keyboard_game_controller_i*& game_controller);
-void destroy_mouse_keyboard_game_controller(mouse_keyboard_game_controller_i* game_controller);
+void create_mouse_keyboard_input_controller(mouse_keyboard_input_controller_i*& input_controller);
+void destroy_mouse_keyboard_input_controller(mouse_keyboard_input_controller_i* input_controller);
