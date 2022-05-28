@@ -1,10 +1,10 @@
-#include "hch_renderer.h"
+#include "renderer.h"
 #include "d3dx12.h"
 
 #define CK(v) if (FAILED(hres = (v))) return hres
 
 
-HRESULT hch_render_device_c::create_pipeline(const D3D_FEATURE_LEVEL feature_level, HWND wnd_handle) {
+HRESULT renderer_c::create_pipeline(const D3D_FEATURE_LEVEL feature_level, HWND wnd_handle) {
     this->wnd_handle = wnd_handle;
     HRESULT hres;
     CK(create_dxgi_factory());
@@ -33,14 +33,14 @@ HRESULT hch_render_device_c::create_pipeline(const D3D_FEATURE_LEVEL feature_lev
 }
 
 
-void hch_render_device_c::destroy_pipeline() {
+void renderer_c::destroy_pipeline() {
     wait_for_prev_frame();
     CloseHandle(frame_fence_event);
     gpu_allocator->Release();
 }
 
 
-HRESULT hch_render_device_c::prerecord_render() {
+HRESULT renderer_c::prerecord_render() {
     HRESULT hres;
     CK(d3d_command_allocator->Reset());
     CK(d3d_direct_command_list->Reset(d3d_command_allocator.Get(), d3d_pipeline_state.Get()));
@@ -59,7 +59,7 @@ HRESULT hch_render_device_c::prerecord_render() {
 }
 
 
-HRESULT hch_render_device_c::on_render() {
+HRESULT renderer_c::on_render() {
     // Record all the commands we need to render the scene into the command list.
     HRESULT hres;
     CK(prerecord_render());
@@ -76,7 +76,7 @@ HRESULT hch_render_device_c::on_render() {
 }
 
 
-HRESULT hch_render_device_c::create_dxgi_factory() {
+HRESULT renderer_c::create_dxgi_factory() {
     UINT createFactoryFlags = 0;
 
 #if defined(_DEBUG)
@@ -87,7 +87,7 @@ HRESULT hch_render_device_c::create_dxgi_factory() {
 }
 
 
-std::vector <IDXGIAdapter1*> hch_render_device_c::enum_adapters(D3D_FEATURE_LEVEL feature_level) {
+std::vector <IDXGIAdapter1*> renderer_c::enum_adapters(D3D_FEATURE_LEVEL feature_level) {
     std::vector <IDXGIAdapter1*> vAdapters;
     IDXGIAdapter1* pAdapter = nullptr;
 
@@ -107,7 +107,7 @@ std::vector <IDXGIAdapter1*> hch_render_device_c::enum_adapters(D3D_FEATURE_LEVE
 }
 
 
-HRESULT hch_render_device_c::create_command_queues() {
+HRESULT renderer_c::create_command_queues() {
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
     queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
     queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
@@ -118,7 +118,7 @@ HRESULT hch_render_device_c::create_command_queues() {
 }
 
 
-HRESULT hch_render_device_c::create_swap_chain(const UINT frame_num, UINT& frame_idx) {
+HRESULT renderer_c::create_swap_chain(const UINT frame_num, UINT& frame_idx) {
     assert(frame_num != 0);
     assert(wnd_handle != 0);
 
@@ -149,7 +149,7 @@ HRESULT hch_render_device_c::create_swap_chain(const UINT frame_num, UINT& frame
 }
 
 
-HRESULT hch_render_device_c::create_rtv_desc_heap(const UINT num_descriptors) {
+HRESULT renderer_c::create_rtv_desc_heap(const UINT num_descriptors) {
     assert(num_descriptors != 0);
 
     // Describe and create a render target view (RTV) descriptor heap.
@@ -165,7 +165,7 @@ HRESULT hch_render_device_c::create_rtv_desc_heap(const UINT num_descriptors) {
 }
 
 
-HRESULT hch_render_device_c::create_render_target_view(const UINT frame_num) {
+HRESULT renderer_c::create_render_target_view(const UINT frame_num) {
     assert(rtv_desc_size != 0);
     assert(frame_num != 0);
 
@@ -187,7 +187,7 @@ HRESULT hch_render_device_c::create_render_target_view(const UINT frame_num) {
 }
 
 
-HRESULT hch_render_device_c::create_direct_command_list() {
+HRESULT renderer_c::create_direct_command_list() {
     HRESULT hres;
     CK(d3d_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, d3d_command_allocator.Get(), nullptr, IID_PPV_ARGS(&d3d_direct_command_list)));
     CK(d3d_direct_command_list->Close());
@@ -200,7 +200,7 @@ HRESULT hch_render_device_c::create_direct_command_list() {
 }
 
 
-HRESULT hch_render_device_c::wait_for_prev_frame()
+HRESULT renderer_c::wait_for_prev_frame()
 {
     HRESULT hres;
     const UINT64 fence = frame_fence_value;

@@ -58,8 +58,22 @@ LRESULT CALLBACK wnd_app_c::wnd_proc(HWND hWnd, UINT message, WPARAM wParam, LPA
         SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)pParent);
     }
     break;
-    case WM_PAINT:
-        return wnd->on_paint();
+    case WM_PAINT:         return wnd->on_paint();
+    case WM_KEYDOWN:       return wnd->on_wm_keydown(wParam, lParam);
+    case WM_KEYUP:         return wnd->on_wm_keyup(wParam, lParam);
+    case WM_UNICHAR:       return wnd->on_wm_unichar(wParam, lParam);
+    case WM_CHAR:          return wnd->on_wm_char(wParam, lParam);
+    case WM_LBUTTONDBLCLK: return wnd->on_wm_lbuttondblclk(wParam, lParam);
+    case WM_LBUTTONDOWN:   return wnd->on_wm_lbuttonddown(wParam, lParam);
+    case WM_LBUTTONUP:     return wnd->on_wm_lbuttondup(wParam, lParam);
+    case WM_MBUTTONDBLCLK: return wnd->on_wm_mbuttondblclk(wParam, lParam);
+    case WM_MBUTTONDOWN:   return wnd->on_wm_mbuttonddown(wParam, lParam);
+    case WM_MBUTTONUP:     return wnd->on_wm_mbuttondup(wParam, lParam);
+    case WM_RBUTTONDBLCLK: return wnd->on_wm_rbuttondblclk(wParam, lParam);
+    case WM_RBUTTONDOWN:   return wnd->on_wm_rbuttonddown(wParam, lParam);
+    case WM_RBUTTONUP:     return wnd->on_wm_rbuttondup(wParam, lParam);
+    case WM_MOUSEWHEEL:    return wnd->on_wm_mousewheel(wParam, lParam);
+    case WM_MOUSEMOVE:     return wnd->on_wm_mousemove(wParam, lParam);
     case WM_DESTROY:
         PostQuitMessage(0);
         break;

@@ -6,7 +6,7 @@
 
 using Microsoft::WRL::ComPtr;
 
-class hch_render_device_c : public hch_render_device_i {
+class renderer_c : public renderer_i {
 public:
 	HRESULT create_pipeline(D3D_FEATURE_LEVEL feature_level, HWND wnd_handle);
 	HRESULT wait_for_prev_frame();
