@@ -27,6 +27,10 @@ public:
     }
 
     void operator+=(event_handler_c* event_handler) {
+        for (event_handler_c* handler : event_handlers)
+            if (handler == event_handler)
+                return;
+
         event_handlers.push_back(event_handler);
     }
 

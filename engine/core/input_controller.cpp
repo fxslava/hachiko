@@ -117,18 +117,25 @@ mouse_keyboard_game_controller_c::mouse_keyboard_game_controller_c()
 	}
 }
 
+bool mouse_keyboard_game_controller_c::is_action_id_available(ACTION_ID action_id)
+{
+	return actions_desc.find(action_id) != actions_desc.end();
+}
+
 void mouse_keyboard_game_controller_c::register_action_id(const MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, const bool shift_key, const bool ctrl_key, const ACTION_ID action) {
 
-	auto* action_desc = new ACTION_DESC;
+	const bool is_available = is_action_id_available(action);
+	auto* action_desc = is_available ? actions_desc[action] : new ACTION_DESC;
+	if (!is_available) {
+		actions_desc[action] = action_desc;
+		actions_map.push_back(action_desc);
+	}
 
 	const VIRTUAL_KEY_MAP mask = virtual_key_bitmask[vitrtual_key];
 	const auto state = static_cast<CTRL_SHIFT_STATE>((ctrl_key ? 1 : 0) + (shift_key ? 2 : 0));
 	action_desc->vk_map[state].low_value  |= mask.low_value;
 	action_desc->vk_map[state].high_value |= mask.high_value;
 	action_desc->action_id = action;
-
-	actions_map.push_back(action_desc);
-	actions_desc[action] = action_desc;
 }
 
 void mouse_keyboard_game_controller_c::update_actions(MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, bool shift_key, bool ctrl_key, UPDATE_ACTION_PROC proc, bool call_action) {

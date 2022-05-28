@@ -13,6 +13,10 @@ dx_wnd_app_c::dx_wnd_app_c(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cm
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_DOWN,  false, false, ACTION_CAMERA_MOVE_DOWN);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_LEFT,  false, false, ACTION_CAMERA_MOVE_LEFT);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_RIGHT, false, false, ACTION_CAMERA_MOVE_RIGHT);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_W,     false, false, ACTION_CAMERA_MOVE_UP);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_S,     false, false, ACTION_CAMERA_MOVE_DOWN);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_A,     false, false, ACTION_CAMERA_MOVE_LEFT);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_D,     false, false, ACTION_CAMERA_MOVE_RIGHT);
 
     view_camera.subscribe(mouse_keyboard_input_controller);
 }

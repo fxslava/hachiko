@@ -67,6 +67,7 @@ private:
 		UPDATE_ACTION_DBLCLK,
 	};
 	void update_actions(MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, bool shift_key, bool ctrl_key, UPDATE_ACTION_PROC proc, bool call_action = true);
+	bool is_action_id_available(ACTION_ID action_id);
 
 	std::vector<ACTION_DESC*> actions_map;
 	std::map<ACTION_ID, ACTION_DESC*> actions_desc;
