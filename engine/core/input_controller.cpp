@@ -5,7 +5,7 @@
 #define GET_CTRL_STATE (GetAsyncKeyState(VK_LCONTROL) || GetAsyncKeyState(VK_RCONTROL))
 #define GET_ALT_STATE (GetAsyncKeyState(VK_LMENU) || GetAsyncKeyState(VK_RMENU))
 
-uint8_t convert_to_wnd_virtual_key(MOUSE_KEYBOARD_VIRTUAL_KEY key)
+WORD convert_to_wnd_virtual_key(MOUSE_KEYBOARD_VIRTUAL_KEY key)
 {
 	return virtual_key_to_wnd_vk[key];
 }

@@ -33,7 +33,7 @@ private:
 	std::vector<ComPtr<ID3D12Resource>> d3d_render_targets{};
 	ComPtr<ID3D12PipelineState>         d3d_pipeline_state;
 
-	INT64 rtv_desc_size = 0;
+	UINT rtv_desc_size = 0;
 	UINT swap_chain_frame_num = 3;
 	UINT current_render_target_idx = 0;
 

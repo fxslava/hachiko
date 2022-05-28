@@ -41,6 +41,6 @@ protected:
 	renderer_i* d3d_renderer = nullptr;
 	mouse_keyboard_input_controller_i* mouse_keyboard_input_controller = nullptr;
 
-	render_camera_c view_camera;
+	movable_camera_c view_camera;
 };
 
