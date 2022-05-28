@@ -15,6 +15,7 @@ file(
         ./core/renderer.cpp
 		./core/thirdparty/d3d12memalloc/D3D12MemAlloc.cpp
 		./api/src/hachiko_api.cpp
+		./api/src/input_controller_api.cpp
 )
 
 set(
