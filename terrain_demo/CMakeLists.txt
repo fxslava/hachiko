@@ -1,13 +1,15 @@
 project(demo_terrain)
 
-include_directories(../engine/api/include)
+include_directories(
+    ../engine/platform
+    ../engine/api/include
+)
 
 file(
     GLOB APP_SOURCES
         ./demo_terrain.cpp
         ./demo_terrain.rc
-        ./wnd_app.cpp
-        ./dx_wnd_app.cpp
+        ./demo_terrain_app.cpp
 )
 
 add_executable (

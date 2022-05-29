@@ -197,10 +197,14 @@ void mouse_keyboard_game_controller_c::every_frame_update(float elapsed_time) {
 
 void mouse_keyboard_game_controller_c::subscribe(action_event_handler_c* handler, ACTION_ID action) {
 	auto* desc = actions_desc[action];
-	desc->event += handler;
+	if (desc) {
+		desc->event += handler;
+	}
 }
 
 void mouse_keyboard_game_controller_c::unsubscribe(action_event_handler_c* handler, ACTION_ID action) {
 	auto* desc = actions_desc[action];
-	desc->event -= handler;
+	if (desc) {
+		desc->event -= handler;
+	}
 }

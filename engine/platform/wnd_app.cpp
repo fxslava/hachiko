@@ -14,12 +14,12 @@ void wnd_app_c::create_window(HINSTANCE instance, HINSTANCE prev_instance, LPSTR
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
     wcex.hInstance = instance;
-    wcex.hIcon = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_DEMO_APP));
+    wcex.hIcon = get_app_icon(instance);
     wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName = NULL;
     wcex.lpszClassName = get_class_name();
-    wcex.hIconSm = LoadIcon(wcex.hInstance, IDI_APPLICATION);
+    wcex.hIconSm = get_app_icon_sm(instance);
 
     if (!RegisterClassEx(&wcex)) {
         throw std::runtime_error("Call to RegisterClassEx failed!");
@@ -106,7 +106,7 @@ LRESULT wnd_app_c::on_paint() {
 
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(wnd_handle, &ps);
-    TextOut(hdc, 5, 5, buffer, wcslen(buffer));
+    TextOut(hdc, 5, 5, buffer, int(wcslen(buffer)));
     EndPaint(wnd_handle, &ps);
     return 0;
 }

@@ -1,4 +1,4 @@
-#include "dx_wnd_app.h"
+#include "demo_terrain_app.h"
 #include <assert.h>
 #include <comdef.h>
 

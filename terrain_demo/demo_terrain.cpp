@@ -4,8 +4,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include <windows.h>
-#include "dx_wnd_app.h"
+#include "demo_terrain_app.h"
 
 int WINAPI WinMain(
     HINSTANCE hInstance,
