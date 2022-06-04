@@ -3,6 +3,7 @@ project(demo_terrain)
 include_directories(
     ../engine/platform
     ../engine/api/include
+    ../engine/core/thirdparty/d3d12memalloc
 )
 
 file(
@@ -32,3 +33,5 @@ target_link_libraries(
 target_compile_definitions(demo_terrain
   PRIVATE "UNICODE;_UNICODE"
 )
+
+set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin")

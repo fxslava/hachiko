@@ -1,12 +1,15 @@
 #include "renderer.h"
-#include "d3dx12.h"
 
 #define CK(v) if (FAILED(hres = (v))) return hres
 
 
-HRESULT renderer_c::create_pipeline(const D3D_FEATURE_LEVEL feature_level, HWND wnd_handle) {
+HRESULT renderer_c::create_pipeline(const UINT width, const UINT height, const D3D_FEATURE_LEVEL feature_level, HWND wnd_handle) {
+    d3d_viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
+    d3d_scissor_rect = CD3DX12_RECT(0, 0, static_cast<LONG>(width), static_cast<LONG>(height));
     this->wnd_handle = wnd_handle;
+
     HRESULT hres;
+
     CK(create_dxgi_factory());
 
     ComPtr<IDXGIAdapter> preferred_adapter;
@@ -40,29 +43,41 @@ void renderer_c::destroy_pipeline() {
 }
 
 
-HRESULT renderer_c::prerecord_render() {
+HRESULT renderer_c::begin_command_list(ID3D12GraphicsCommandList** command_list)
+{
     HRESULT hres;
     CK(d3d_command_allocator->Reset());
-    CK(d3d_direct_command_list->Reset(d3d_command_allocator.Get(), d3d_pipeline_state.Get()));
-
+    CK(d3d_direct_command_list->Reset(d3d_command_allocator.Get(), nullptr));
     d3d_direct_command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(d3d_render_targets[frame_idx].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(d3d_rtv_heap->GetCPUDescriptorHandleForHeapStart(), frame_idx, rtv_desc_size);
+    d3d_direct_command_list->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+
+    *command_list = d3d_direct_command_list.Get();
+    return hres;
+}
+
+HRESULT renderer_c::end_command_list(ID3D12GraphicsCommandList* command_list)
+{
+    return command_list->Close();
+}
+
+HRESULT renderer_c::clear_render_target(ID3D12GraphicsCommandList* command_list, float clear_color[4])
+{
+    command_list->RSSetViewports(1, &d3d_viewport);
+    command_list->RSSetScissorRects(1, &d3d_scissor_rect);
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(d3d_rtv_heap->GetCPUDescriptorHandleForHeapStart(), frame_idx, rtv_desc_size);
 
-    const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-    d3d_direct_command_list->ClearRenderTargetView(rtv_handle, clearColor, 0, nullptr);
+    command_list->ClearRenderTargetView(rtv_handle, clear_color, 0, nullptr);
 
-    d3d_direct_command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(d3d_render_targets[frame_idx].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
-
-    CK(d3d_direct_command_list->Close());
     return S_OK;
 }
 
 
 HRESULT renderer_c::on_render() {
-    // Record all the commands we need to render the scene into the command list.
     HRESULT hres;
-    CK(prerecord_render());
+    d3d_direct_command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(d3d_render_targets[frame_idx].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
     // Execute the command list.
     ID3D12CommandList* ppCommandLists[] = { d3d_direct_command_list.Get() };
@@ -80,7 +95,14 @@ HRESULT renderer_c::create_dxgi_factory() {
     UINT createFactoryFlags = 0;
 
 #if defined(_DEBUG)
-    createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+    {
+        ComPtr<ID3D12Debug> debugController;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
+        {
+            debugController->EnableDebugLayer();
+            createFactoryFlags = DXGI_CREATE_FACTORY_DEBUG;
+        }
+    }
 #endif
 
     return CreateDXGIFactory2(createFactoryFlags, IID_PPV_ARGS(&dxgi_factory));

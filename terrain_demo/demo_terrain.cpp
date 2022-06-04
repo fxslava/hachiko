@@ -13,7 +13,7 @@ int WINAPI WinMain(
     int       nCmdShow
 )
 {
-    dx_wnd_app_c App(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
+    demo_terrain_app_c App(hInstance, hPrevInstance, lpCmdLine, nCmdShow);
 
     App.create_pipline(D3D_FEATURE_LEVEL_12_0);
 

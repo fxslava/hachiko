@@ -2,16 +2,25 @@
 #include <assert.h>
 #include <vector>
 #include "hachiko_api.h"
-#include "D3D12MemAlloc.h"
+#include "d3dx12.h"
+#include "DirectXMath.h"
 
+using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
 class renderer_c : public renderer_i {
 public:
-	HRESULT create_pipeline(D3D_FEATURE_LEVEL feature_level, HWND wnd_handle);
+	HRESULT create_pipeline(UINT width, UINT height, D3D_FEATURE_LEVEL feature_level, HWND wnd_handle);
 	HRESULT wait_for_prev_frame();
-	HRESULT prerecord_render();
+
+	HRESULT begin_command_list(ID3D12GraphicsCommandList** command_list);
+	HRESULT end_command_list(ID3D12GraphicsCommandList* command_list);
+	HRESULT clear_render_target(ID3D12GraphicsCommandList* command_list, float clear_color[4]);
 	HRESULT on_render();
+
+	ID3D12Device* get_d3d_device() { return d3d_device.Get(); };
+	D3D12MA::Allocator* get_gpu_allocator() { return gpu_allocator.Get(); };
+
 	void destroy_pipeline();
 
 private:
@@ -33,8 +42,10 @@ private:
 	std::vector<ComPtr<ID3D12Resource>> d3d_render_targets{};
 	ComPtr<ID3D12PipelineState>         d3d_pipeline_state;
 
+	CD3DX12_VIEWPORT d3d_viewport;
+	CD3DX12_RECT d3d_scissor_rect;
 	UINT rtv_desc_size = 0;
-	UINT swap_chain_frame_num = 3;
+	UINT swap_chain_frame_num = 2;
 	UINT current_render_target_idx = 0;
 
 	// Synchronization objects.
@@ -44,7 +55,7 @@ private:
 	ComPtr<ID3D12Fence> frame_fance;
 
 	// Memory managment
-	D3D12MA::Allocator*	gpu_allocator;
+	ComPtr<D3D12MA::Allocator>	gpu_allocator;
 
 	// hWnd
 	HWND wnd_handle = 0;

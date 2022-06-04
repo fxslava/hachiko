@@ -1,5 +1,35 @@
 project(hachiko_engine_lib)
 
+# Build HLSL shaders
+set(HLSL_SHADER_FILES 
+		./core/shaders/sample_shader.psh
+		./core/shaders/sample_shader.vsh
+)
+
+add_custom_target(shaders)
+
+set_source_files_properties(core/shaders/sample_shader.vsh PROPERTIES ShaderType "vs")
+set_source_files_properties(core/shaders/sample_shader.psh PROPERTIES ShaderType "ps")
+set_source_files_properties(${HLSL_SHADER_FILES} PROPERTIES ShaderModel "5_0")
+
+set(SHADERS_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/shaders)
+file(MAKE_DIRECTORY ${SHADERS_OUTPUT_DIR})
+
+foreach(FILE ${HLSL_SHADER_FILES})
+	get_filename_component(FILE_WE ${FILE} NAME_WE)
+	get_source_file_property(shadertype ${FILE} ShaderType)
+	get_source_file_property(shadermodel ${FILE} ShaderModel)
+
+	add_custom_command(TARGET shaders
+	                   COMMAND dxc.exe /nologo /Emain /T${shadertype}_${shadermodel} /Od /O1 /Zi /Fo ${SHADERS_OUTPUT_DIR}/${FILE_WE}_${shadertype}.cso /Fd ${SHADERS_OUTPUT_DIR}/${FILE_WE}_${shadertype}.pdb ${FILE}
+	                   MAIN_DEPENDENCY ${FILE}
+	                   COMMENT "HLSL ${FILE}"
+	                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	                   VERBATIM)
+endforeach(FILE)
+
+source_group("Shaders" FILES ${HLSL_SHADER_FILES})
+
 if (MSVC)
     # warning level 4 and all warnings as errors
     add_compile_options(/W3 /WX /arch:AVX2 /DUNICODE)
@@ -10,6 +40,7 @@ endif()
 
 include_directories(
 	core/
+	core/common
 	core/thirdparty/directx
 	core/thirdparty/wsl
 	core/thirdparty/dxguids
@@ -26,9 +57,13 @@ file(
 		./platform/wnd_app.cpp
 	    ./core/input_controller.cpp
         ./core/renderer.cpp
+		./core/terrain.cpp
+		./core/shader_pass.cpp
+		./core/common/utils.cpp
 		./core/thirdparty/d3d12memalloc/D3D12MemAlloc.cpp
 		./api/src/camera.cpp
 		./api/src/hachiko_api.cpp
+		./api/src/game_actors.cpp
 		./api/src/input_controller_api.cpp
 )
 
@@ -40,7 +75,9 @@ set(
 add_library(
 	${PROJECT_NAME}
 	${SOURCES}
+	${HLSL_SHADER_FILES}
 	)
+add_dependencies(${PROJECT_NAME} shaders)
 
 set(
     DEPS_LIBRARIES

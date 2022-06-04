@@ -92,6 +92,8 @@ int wnd_app_c::loop(wnd_app_c* ctx, render_callback_t render_cb) {
             if (render_cb) render_cb(ctx);
         }
 
+        if (render_cb) render_cb(ctx);
+
         if (msg.message == WM_QUIT)  break;
     }
     ctx->on_destroy();
