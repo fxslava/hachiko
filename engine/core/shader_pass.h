@@ -17,6 +17,7 @@ class shader_pass_c
 {
 public:
 	HRESULT create_pso(renderer_c* renderer);
+	void destroy_pso();
 	void setup(ID3D12GraphicsCommandList* command_list);
 protected:
 	ComPtr<ID3D12RootSignature> root_signature;

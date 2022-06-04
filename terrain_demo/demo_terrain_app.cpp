@@ -7,7 +7,6 @@
 demo_terrain_app_c::demo_terrain_app_c(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int cmd_show) {
     wnd_app_c::create_window(instance, prev_instance, cmd_line, cmd_show);
     create_render_device(d3d_renderer);
-    create_mouse_keyboard_input_controller(mouse_keyboard_input_controller);
 
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_UP,    false, false, ACTION_CAMERA_MOVE_FORWARD);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_DOWN,  false, false, ACTION_CAMERA_MOVE_BACKWARD);
@@ -23,11 +22,6 @@ demo_terrain_app_c::demo_terrain_app_c(HINSTANCE instance, HINSTANCE prev_instan
     create_terrain_actor(terrain);
 }
 
-demo_terrain_app_c::~demo_terrain_app_c() {
-    destroy_render_device(d3d_renderer);
-    destroy_mouse_keyboard_input_controller(mouse_keyboard_input_controller);
-    destroy_terrain_actor(terrain);
-}
 
 void demo_terrain_app_c::create_pipline(D3D_FEATURE_LEVEL feature_level) {
     d3d_renderer->create_pipeline(1920, 1080, feature_level, wnd_handle);
@@ -52,7 +46,9 @@ HRESULT demo_terrain_app_c::on_render() {
 
 
 void demo_terrain_app_c::on_destroy() {
+    destroy_terrain_actor(terrain);
     d3d_renderer->destroy_pipeline();
+    destroy_render_device(d3d_renderer);
 }
 
 

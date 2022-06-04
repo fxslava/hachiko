@@ -51,5 +51,7 @@ protected:
 	int mouse_x = 0;
 	int mouse_y = 0;
 	int mouse_wheel = 0;
+
+	bool running = true;
 };
 

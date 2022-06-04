@@ -15,54 +15,29 @@ HRESULT terrain_base_c::allocate_resources(renderer_i * renderer)
     HRESULT hres = S_OK;
     CK(sample_shader_pass.create_pso(d3d_renderer));
 
-    // Create the vertex buffer.
+    Vertex triangleVertices[] =
     {
-        // Define the geometry for a triangle.
-        Vertex triangleVertices[] =
-        {
-            { { 0.0f, 0.25f * aspect_ratio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-            { { 0.25f, -0.25f * aspect_ratio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-            { { -0.25f, -0.25f * aspect_ratio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
-        };
+        { { 0.0f, 0.25f * aspect_ratio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+        { { 0.25f, -0.25f * aspect_ratio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+        { { -0.25f, -0.25f * aspect_ratio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
+    };
+    const UINT triangle_vertices_size = sizeof(triangleVertices);
 
-        const UINT vertexBufferSize = sizeof(triangleVertices);
+    D3D12MA::ALLOCATION_DESC allocationDesc = {};
+    allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
 
-        D3D12MA::ALLOCATION_DESC allocationDesc = {};
-        allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+    ComPtr<ID3D12Resource> vertex_buffer_resource;
+    CK(gpu_allocator->CreateResource(&allocationDesc, &CD3DX12_RESOURCE_DESC::Buffer(triangle_vertices_size), D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, &vertex_buffer, IID_PPV_ARGS(&vertex_buffer_resource)));
 
-        ComPtr<ID3D12Resource> vertexBuffer;
-        CK(gpu_allocator->CreateResource(&allocationDesc, &CD3DX12_RESOURCE_DESC::Buffer(vertexBufferSize), D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, &m_vertexBuffer, IID_PPV_ARGS(&vertexBuffer)));
+    UINT8* vertex_data;
+    const CD3DX12_RANGE read_range(0, 0);
+    CK(vertex_buffer_resource->Map(0, &read_range, reinterpret_cast<void**>(&vertex_data)));
+    memcpy(vertex_data, triangleVertices, sizeof(triangleVertices));
+    vertex_buffer_resource->Unmap(0, nullptr);
 
-        // Copy the triangle data to the vertex buffer.
-        UINT8* pVertexDataBegin;
-        CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
-        CK(vertexBuffer->Map(0, &readRange, reinterpret_cast<void**>(&pVertexDataBegin)));
-        memcpy(pVertexDataBegin, triangleVertices, sizeof(triangleVertices));
-        vertexBuffer->Unmap(0, nullptr);
-
-        // Initialize the vertex buffer view.
-        m_vertexBufferView.BufferLocation = vertexBuffer->GetGPUVirtualAddress();
-        m_vertexBufferView.StrideInBytes = sizeof(Vertex);
-        m_vertexBufferView.SizeInBytes = vertexBufferSize;
-    }
-
-    /*// Create synchronization objects and wait until assets have been uploaded to the GPU.
-    {
-        CK(d3d_device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence)));
-        m_fenceValue = 1;
-
-        // Create an event handle to use for frame synchronization.
-        m_fenceEvent = CreateEvent(nullptr, FALSE, FALSE, nullptr);
-        if (m_fenceEvent == nullptr)
-        {
-            CK(HRESULT_FROM_WIN32(GetLastError()));
-        }
-
-        // Wait for the command list to execute; we are reusing the same command 
-        // list in our main loop but for now, we just want to wait for setup to 
-        // complete before continuing.
-        renderer->wait_for_prev_frame();
-    }*/
+    vertex_buffer_view.BufferLocation = vertex_buffer_resource->GetGPUVirtualAddress();
+    vertex_buffer_view.StrideInBytes = sizeof(Vertex);
+    vertex_buffer_view.SizeInBytes = triangle_vertices_size;
 
     renderer->wait_for_prev_frame();
     return S_OK;
@@ -73,6 +48,6 @@ void terrain_base_c::render(ID3D12GraphicsCommandList* command_list)
     sample_shader_pass.setup(command_list);
 
     command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    command_list->IASetVertexBuffers(0, 1, &m_vertexBufferView);
+    command_list->IASetVertexBuffers(0, 1, &vertex_buffer_view);
     command_list->DrawInstanced(3, 1, 0, 0);
 }

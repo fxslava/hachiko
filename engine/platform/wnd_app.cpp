@@ -44,6 +44,7 @@ void wnd_app_c::create_window(HINSTANCE instance, HINSTANCE prev_instance, LPSTR
 
     ShowWindow(wnd_handle, cmd_show);
     UpdateWindow(wnd_handle);
+    create_mouse_keyboard_input_controller(mouse_keyboard_input_controller);
 }
 
 
@@ -75,6 +76,7 @@ LRESULT CALLBACK wnd_app_c::wnd_proc(HWND hWnd, UINT message, WPARAM wParam, LPA
     case WM_MOUSEWHEEL:    return wnd->on_wm_mousewheel(wParam, lParam);
     case WM_MOUSEMOVE:     return wnd->on_wm_mousemove(wParam, lParam);
     case WM_DESTROY:
+        wnd->running = false;
         PostQuitMessage(0);
         break;
     }
@@ -84,7 +86,7 @@ LRESULT CALLBACK wnd_app_c::wnd_proc(HWND hWnd, UINT message, WPARAM wParam, LPA
 
 int wnd_app_c::loop(wnd_app_c* ctx, render_callback_t render_cb) {
     MSG msg;
-    while (TRUE) {
+    while (ctx->running) {
         while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
@@ -93,8 +95,6 @@ int wnd_app_c::loop(wnd_app_c* ctx, render_callback_t render_cb) {
         }
 
         if (render_cb) render_cb(ctx);
-
-        if (msg.message == WM_QUIT)  break;
     }
     ctx->on_destroy();
 
@@ -115,5 +115,5 @@ LRESULT wnd_app_c::on_paint() {
 
 
 void wnd_app_c::on_destroy() {
-
+    destroy_mouse_keyboard_input_controller(mouse_keyboard_input_controller);
 }

@@ -13,6 +13,12 @@ using Microsoft::WRL::ComPtr;
 class terrain_base_c : public terrain_i
 {
 public:
+	~terrain_base_c()
+	{
+		if (vertex_buffer) {
+			vertex_buffer->Release();
+		}
+	}
 	HRESULT allocate_resources(renderer_i* renderer);
 	void render(ID3D12GraphicsCommandList* command_list);
 protected:
@@ -23,14 +29,7 @@ protected:
 		XMFLOAT4 color;
 	};
 
-	ComPtr<D3D12MA::Allocation> m_vertexBuffer;
-	D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
-
+	D3D12MA::Allocation* vertex_buffer = nullptr;
+	D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
 	shader_pass_c sample_shader_pass;
-
-	// Synchronization objects.
-	UINT m_frameIndex;
-	HANDLE m_fenceEvent;
-	ComPtr<ID3D12Fence> m_fence;
-	UINT64 m_fenceValue;
 };
