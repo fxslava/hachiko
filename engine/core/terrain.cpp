@@ -40,6 +40,13 @@ HRESULT terrain_base_c::allocate_resources(renderer_i * renderer)
     vertex_buffer_view.SizeInBytes = triangle_vertices_size;
 
     renderer->wait_for_prev_frame();
+
+    CK(resource_manager.create_resource_factory(d3d_renderer));
+
+    resource_manager.init(fs::current_path() / fs::path("resources"));
+    resource_manager.start();
+    resource_manager.query_resource("sample_terrain/LOD1/image_x0_y1.bmp");
+
     return S_OK;
 }
 

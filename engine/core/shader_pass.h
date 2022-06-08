@@ -1,4 +1,5 @@
 #pragma once
+#define NOMINMAX
 #include <windows.h>
 #include <dxgi1_6.h>
 #include <d3d12.h>
@@ -17,7 +18,6 @@ class shader_pass_c
 {
 public:
 	HRESULT create_pso(renderer_c* renderer);
-	void destroy_pso();
 	void setup(ID3D12GraphicsCommandList* command_list);
 protected:
 	ComPtr<ID3D12RootSignature> root_signature;

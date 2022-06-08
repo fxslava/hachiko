@@ -47,12 +47,6 @@ HRESULT shader_pass_c::create_pso(renderer_c* renderer)
     return hres;
 }
 
-void shader_pass_c::destroy_pso()
-{
-    root_signature->Release();
-    pipeline_state->Release();
-}
-
 
 void shader_pass_c::setup(ID3D12GraphicsCommandList* command_list)
 {

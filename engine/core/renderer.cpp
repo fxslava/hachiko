@@ -31,6 +31,7 @@ HRESULT renderer_c::create_pipeline(const UINT width, const UINT height, const D
     CK(create_rtv_desc_heap(swap_chain_frame_num));
     CK(create_render_target_view(swap_chain_frame_num));
     CK(create_direct_command_list());
+    CK(create_upload_command_list());
 
     return S_OK;
 }
@@ -57,10 +58,23 @@ HRESULT renderer_c::begin_command_list(ID3D12GraphicsCommandList** command_list)
     return hres;
 }
 
+
+HRESULT renderer_c::begin_upload_command_list(ID3D12GraphicsCommandList** command_list)
+{
+    HRESULT hres;
+    CK(copy_command_allocator->Reset());
+    CK(d3d_upload_command_list->Reset(d3d_command_allocator.Get(), nullptr));
+
+    *command_list = d3d_upload_command_list.Get();
+    return hres;
+}
+
+
 HRESULT renderer_c::end_command_list(ID3D12GraphicsCommandList* command_list)
 {
     return command_list->Close();
 }
+
 
 HRESULT renderer_c::clear_render_target(ID3D12GraphicsCommandList* command_list, float clear_color[4])
 {
@@ -130,12 +144,19 @@ std::vector <IDXGIAdapter1*> renderer_c::enum_adapters(D3D_FEATURE_LEVEL feature
 
 
 HRESULT renderer_c::create_command_queues() {
-    D3D12_COMMAND_QUEUE_DESC queueDesc = {};
-    queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-    queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
     HRESULT hres;
-    CK(d3d_device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&d3d_direct_queue)));
+
+    D3D12_COMMAND_QUEUE_DESC direct_queue_desc = {};
+    direct_queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+    direct_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
+    CK(d3d_device->CreateCommandQueue(&direct_queue_desc, IID_PPV_ARGS(&d3d_direct_queue)));
     CK(d3d_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&d3d_command_allocator)));
+
+    D3D12_COMMAND_QUEUE_DESC upload_queue_desc = {};
+    upload_queue_desc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
+    upload_queue_desc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
+    CK(d3d_device->CreateCommandQueue(&upload_queue_desc, IID_PPV_ARGS(&d3d_upload_queue)));
+    CK(d3d_device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COPY, IID_PPV_ARGS(&copy_command_allocator)));
     return S_OK;
 }
 
@@ -218,6 +239,14 @@ HRESULT renderer_c::create_direct_command_list() {
     frame_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
     if (frame_fence_event == nullptr)
         return HRESULT_FROM_WIN32(GetLastError());
+    return S_OK;
+}
+
+
+HRESULT renderer_c::create_upload_command_list() {
+    HRESULT hres;
+    CK(d3d_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COPY, copy_command_allocator.Get(), nullptr, IID_PPV_ARGS(&d3d_upload_command_list)));
+    CK(d3d_upload_command_list->Close());
     return S_OK;
 }
 

@@ -1,5 +1,7 @@
 project(hachiko_engine_lib)
 
+set(CMAKE_CXX_STANDARD 17)
+
 # Build HLSL shaders
 set(HLSL_SHADER_FILES 
 		./core/shaders/sample_shader.psh
@@ -56,6 +58,7 @@ file(
     GLOB SOURCES
 		./platform/wnd_app.cpp
 	    ./core/input_controller.cpp
+		./core/resource_manager.cpp
         ./core/renderer.cpp
 		./core/terrain.cpp
 		./core/shader_pass.cpp
