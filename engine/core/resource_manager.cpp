@@ -28,7 +28,7 @@ void resource_manager_c::init(const fs::path& root) {
     }
 
     gpu_resources.resize(resource_id);
-    std::fill(gpu_resources.begin(), gpu_resources.end(), nullptr);
+    std::fill(gpu_resources.begin(), gpu_resources.end(), GPU_RESOURCE{nullptr, CD3DX12_RESOURCE_DESC()});
 }
 
 
@@ -181,8 +181,9 @@ void resource_manager_c::resource_manager_scheduler()
                         upload_list, 
                         load_query->resource_path, 
                         resource_names[load_query->resource_id], 
-                        payload_element, 
-                        gpu_resources[load_query->resource_id]);
+                        payload_element,
+                        gpu_resources[load_query->resource_id].desc,
+                        gpu_resources[load_query->resource_id].resource);
 
                     payload.push_back(resource_payload_t{ payload_element, load_query->resource_id });
                 }
@@ -209,7 +210,8 @@ void resource_manager_c::resource_manager_scheduler()
         wait_for_resources_uploaded();
 
         for (const auto& payload_element : payload) {
-            wic_image_loader.pay(payload_element);
+            wic_image_loader.pay(payload_element.texture_payload);
+            resources[payload_element.resource_id].state = RESOURCE_AVAILABLE;
         }
 
         payload.clear();

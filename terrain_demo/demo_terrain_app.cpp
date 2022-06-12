@@ -23,16 +23,30 @@ demo_terrain_app_c::demo_terrain_app_c(HINSTANCE instance, HINSTANCE prev_instan
 }
 
 
-void demo_terrain_app_c::create_pipline(D3D_FEATURE_LEVEL feature_level) {
-    d3d_renderer->create_pipeline(1920, 1080, feature_level, wnd_handle);
-    terrain->allocate_resources(d3d_renderer);
+HRESULT demo_terrain_app_c::create_pipline(D3D_FEATURE_LEVEL feature_level) {
+    HRESULT hres;
+
+    CK(d3d_renderer->create_pipeline(1920, 1080, feature_level, wnd_handle));
+
+    CK(terrain->allocate_resources(d3d_renderer));
+
+    return S_OK;
+}
+
+
+HRESULT demo_terrain_app_c::update()
+{
+    return terrain->update();
 }
 
 
 HRESULT demo_terrain_app_c::on_render() {
+
     ID3D12GraphicsCommandList* command_list;
     HRESULT hres;
     CK(d3d_renderer->begin_command_list(&command_list));
+
+    update();
 
     float clear_color[] = { 0.4f, 0.4f, 0.7f, 1.0f };
     CK(d3d_renderer->clear_render_target(command_list, clear_color));

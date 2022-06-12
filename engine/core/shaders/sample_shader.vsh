@@ -1,11 +1,11 @@
 #include "sample_shader_in_out.fx"
 
-PSInput main(float4 position : POSITION, float4 color : COLOR)
+PSInput main(float4 position : POSITION, float4 uv : TEXCOORD)
 {
     PSInput result;
 
     result.position = position;
-    result.color = color;
+    result.uv = uv;
 
     return result;
 }

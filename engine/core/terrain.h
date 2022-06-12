@@ -22,6 +22,8 @@ public:
 	}
 	HRESULT allocate_resources(renderer_i* renderer);
 	void render(ID3D12GraphicsCommandList* command_list);
+
+	HRESULT update();
 protected:
 
 	struct Vertex
@@ -34,4 +36,9 @@ protected:
 	D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
 	shader_pass_c sample_shader_pass;
 	resource_manager_c resource_manager;
+
+	ComPtr<ID3D12Device> d3d_device;
+	ComPtr<ID3D12DescriptorHeap> srv_heap;
+
+	bool srv_heap_not_empty = false;
 };

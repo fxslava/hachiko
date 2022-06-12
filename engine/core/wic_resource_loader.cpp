@@ -115,7 +115,7 @@ HRESULT wic_image_loader_c::create_resource_factory(D3D12MA::Allocator* allocato
     return S_OK;
 }
 
-HRESULT wic_image_loader_c::load_texture(ID3D12Device* device, ID3D12GraphicsCommandList* command_list, const fs::path& texture_path, const std::wstring& resource_name, payload_t& payload, D3D12MA::Allocation*& texture)
+HRESULT wic_image_loader_c::load_texture(ID3D12Device* device, ID3D12GraphicsCommandList* command_list, const fs::path& texture_path, const std::wstring& resource_name, payload_t& payload, D3D12_RESOURCE_DESC& resource_desc, D3D12MA::Allocation*& texture)
 {
     ComPtr<IWICBitmapDecoder> wic_decoder;
     ComPtr<IWICBitmapFrameDecode> wic_frame;
@@ -228,6 +228,7 @@ HRESULT wic_image_loader_c::load_texture(ID3D12Device* device, ID3D12GraphicsCom
             nullptr);
     }
 
+    resource_desc = texture_desc;
     payload.allocation = allocation;
 
     return S_OK;

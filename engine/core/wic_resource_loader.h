@@ -63,7 +63,7 @@ public:
 	};
 
 	HRESULT create_resource_factory(D3D12MA::Allocator* allocator);
-	HRESULT load_texture(ID3D12Device* device, ID3D12GraphicsCommandList* command_list, const fs::path& texture_path, const std::wstring& resource_name, payload_t& payload, D3D12MA::Allocation*& texture);
+	HRESULT load_texture(ID3D12Device* device, ID3D12GraphicsCommandList* command_list, const fs::path& texture_path, const std::wstring& resource_name, payload_t& payload, D3D12_RESOURCE_DESC& resource_desc, D3D12MA::Allocation*& texture);
 	void pay(payload_t payload)
 	{
 		free_ring(payload.allocation);

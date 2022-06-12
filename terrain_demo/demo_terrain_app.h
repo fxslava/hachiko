@@ -16,7 +16,9 @@ class demo_terrain_app_c : public wnd_app_c
 public:
 	demo_terrain_app_c(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int cmd_show);
 
-	void create_pipline(D3D_FEATURE_LEVEL feature_level);
+	HRESULT create_pipline(D3D_FEATURE_LEVEL feature_level);
+
+	HRESULT update();
 
 	HRESULT on_render();
 

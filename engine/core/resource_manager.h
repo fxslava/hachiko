@@ -64,6 +64,12 @@ public:
 		fs::path resource_path = "";
 	};
 
+	struct GPU_RESOURCE
+	{
+		D3D12MA::Allocation* resource;
+		D3D12_RESOURCE_DESC desc;
+	};
+
 	using RESOURCE_ID = int32_t;
 
 	void init();
@@ -75,16 +81,16 @@ public:
 	QUERY_RESOURCE_STATE query_resource(RESOURCE_ID resource_id);			 // thread safe
 	QUERY_RESOURCE_STATE query_resource(const std::wstring& resource_id);    // thread safe
 
-	ID3D12Resource* get_resource(RESOURCE_ID resource_id)
+	GPU_RESOURCE* get_resource(RESOURCE_ID resource_id)
 	{
 		if (resources[resource_id].state == RESOURCE_AVAILABLE) {
-			return gpu_resources[resource_id]->GetResource();
+			return &gpu_resources[resource_id];
 		}
 
 		return nullptr;
 	}
 
-	ID3D12Resource* get_resource(const std::wstring& resource_id)
+	GPU_RESOURCE* get_resource(const std::wstring& resource_id)
 	{
 		if (!is_available(resource_id)) {
 			return nullptr;
@@ -119,7 +125,7 @@ private:
 	std::thread *scheduler = nullptr;
 	std::unordered_map<std::wstring, RESOURCE_ID> recource_registry;
 	std::vector<RESOURCE_ENTITY> resources;
-	std::vector<D3D12MA::Allocation*> gpu_resources;
+	std::vector<GPU_RESOURCE> gpu_resources;
 	std::vector<std::wstring> resource_names;
 
 	std::mutex resource_lock;
@@ -142,4 +148,6 @@ private:
 	};
 
 	wic_image_loader_c wic_image_loader;
+
+
 };

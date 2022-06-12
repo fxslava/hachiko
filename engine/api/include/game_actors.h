@@ -6,6 +6,7 @@ class terrain_i
 public:
 	virtual ~terrain_i() {};
 	virtual HRESULT allocate_resources(renderer_i* renderer) = 0;
+	virtual HRESULT update() = 0;
 	virtual void render(ID3D12GraphicsCommandList* command_list) = 0;
 };
 
