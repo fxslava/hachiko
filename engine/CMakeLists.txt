@@ -59,6 +59,7 @@ file(
 		./platform/wnd_app.cpp
 	    ./core/input_controller.cpp
 		./core/resource_manager.cpp
+		./core/wic_resource_loader.cpp
         ./core/renderer.cpp
 		./core/terrain.cpp
 		./core/shader_pass.cpp

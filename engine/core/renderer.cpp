@@ -63,7 +63,7 @@ HRESULT renderer_c::begin_upload_command_list(ID3D12GraphicsCommandList** comman
 {
     HRESULT hres;
     CK(copy_command_allocator->Reset());
-    CK(d3d_upload_command_list->Reset(d3d_command_allocator.Get(), nullptr));
+    CK(d3d_upload_command_list->Reset(copy_command_allocator.Get(), nullptr));
 
     *command_list = d3d_upload_command_list.Get();
     return hres;

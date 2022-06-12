@@ -45,7 +45,7 @@ HRESULT terrain_base_c::allocate_resources(renderer_i * renderer)
 
     resource_manager.init(fs::current_path() / fs::path("resources"));
     resource_manager.start();
-    resource_manager.query_resource("sample_terrain/LOD1/image_x0_y1.bmp");
+    resource_manager.query_resource(L"sample_terrain/LOD1/image_x0_y1.bmp");
 
     return S_OK;
 }

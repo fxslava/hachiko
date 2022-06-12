@@ -19,6 +19,7 @@ public:
 	HRESULT on_render();
 
 	ID3D12Device* get_d3d_device() { return d3d_device.Get(); };
+	ID3D12CommandQueue* get_upload_command_queue() { return d3d_upload_queue.Get(); }
 	D3D12MA::Allocator* get_gpu_allocator() { return gpu_allocator.Get(); };
 
 	void destroy_pipeline();
