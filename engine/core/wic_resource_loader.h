@@ -1,17 +1,6 @@
 #pragma once
-#define NOMINMAX
-#include <windows.h>
-#include <dxgi1_6.h>
-#include <d3d12.h>
-#include <wrl.h>
-#include <wincodec.h>
-
-#include <atomic>
-
+#include "pch.h"
 #include "utils.h"
-#include "d3dx12.h"
-#include "D3D12MemAlloc.h"
-#include <filesystem>
 
 constexpr size_t RESOURCE_UPLOAD_BUFFER_SIZE_BYTES = 1024 * 1024 * 512;
 constexpr size_t RESOURCE_UPLOAD_BUFFER_SIZE = RESOURCE_UPLOAD_BUFFER_SIZE_BYTES / D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
@@ -63,6 +52,7 @@ public:
 	};
 
 	HRESULT create_resource_factory(D3D12MA::Allocator* allocator);
+	void destroy_resource_factory();
 	HRESULT load_texture(ID3D12Device* device, ID3D12GraphicsCommandList* command_list, const fs::path& texture_path, const std::wstring& resource_name, payload_t& payload, D3D12_RESOURCE_DESC& resource_desc, D3D12MA::Allocation*& texture);
 	void pay(payload_t payload)
 	{
@@ -70,7 +60,7 @@ public:
 	}
 
 private:
-	ComPtr<IWICImagingFactory> wic_factory;
+	IWICImagingFactory* wic_factory = nullptr;
 
 	D3D12MA::Allocator* d3d_allocator = nullptr;
 	D3D12MA::Allocation* upload_ring_buffer = nullptr;

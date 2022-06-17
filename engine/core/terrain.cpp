@@ -53,6 +53,30 @@ HRESULT terrain_base_c::allocate_resources(renderer_i * renderer)
     srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     CK(d3d_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srv_heap)));
 
+    // Describe and create a constant buffer view (CBV) descriptor heap.
+    // Flags indicate that this descriptor heap can be bound to the pipeline 
+    // and that descriptors contained in it can be referenced by a root table.
+    D3D12_DESCRIPTOR_HEAP_DESC cbvHeapDesc = {};
+    cbvHeapDesc.NumDescriptors = 1;
+    cbvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    CK(d3d_device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(&cbv_heap)));
+
+    D3D12MA::ALLOCATION_DESC constant_buffer_desc = {};
+    constant_buffer_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+
+    ComPtr<ID3D12Resource> constant_buffer_resource;
+    CK(gpu_allocator->CreateResource(
+        &constant_buffer_desc, 
+        &CD3DX12_RESOURCE_DESC::Buffer(triangle_vertices_size), 
+        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, &constant_buffer, IID_PPV_ARGS(&constant_buffer_resource)));
+
+    // Describe and create a constant buffer view.
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+    cbvDesc.BufferLocation = constant_buffer_resource->GetGPUVirtualAddress();
+    //cbvDesc.SizeInBytes = constantBufferSize;
+    d3d_device->CreateConstantBufferView( & cbvDesc, cbv_heap->GetCPUDescriptorHandleForHeapStart());
+
     return S_OK;
 }
 

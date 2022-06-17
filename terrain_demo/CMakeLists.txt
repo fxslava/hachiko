@@ -4,6 +4,7 @@ include_directories(
     ../engine/platform
     ../engine/api/include
     ../engine/core/thirdparty/d3d12memalloc
+    ../engine/core/thirdparty/directx
 )
 
 file(

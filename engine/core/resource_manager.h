@@ -1,23 +1,5 @@
 #pragma once
-#include <unordered_map>
-#include <string>
-#include <vector>
-#include <array>
-#include <fstream>
-#include <thread>
-#include <iostream>
-#include <filesystem>
-
-#define NOMINMAX
-#include <windows.h>
-#include <dxgi1_6.h>
-#include <d3d12.h>
-#include <wrl.h>
-#include <wincodec.h>
-
-#include <mutex>
-#include <atomic>
-#include <concurrent_queue.h>
+#include "pch.h"
 
 #include "utils.h"
 #include "renderer.h"
@@ -28,13 +10,11 @@ using Microsoft::WRL::ComPtr;
 namespace fs = std::filesystem;
 
 constexpr int RESOURCE_LOADING_CONCURRENT_TASKS_MAX_NUM = 128;
-constexpr int RESOURCE_UPLOAD_CHUNK_SIZE = 16;
+constexpr int RESOURCE_UPLOAD_CHUNK_SIZE = 8;
 
 class resource_manager_c
 {
 public:
-	~resource_manager_c();
-
 	enum RESOURCE_ENTITY_TYPE
 	{
 		UNDEFINED,
@@ -77,6 +57,7 @@ public:
 	void start();
 	void terminate();
 	HRESULT create_resource_factory(renderer_c* renderer);
+	void destroy_resource_factory();
 	HRESULT wait_for_resources_uploaded();
 	QUERY_RESOURCE_STATE query_resource(RESOURCE_ID resource_id);			 // thread safe
 	QUERY_RESOURCE_STATE query_resource(const std::wstring& resource_id);    // thread safe
@@ -99,9 +80,8 @@ public:
 		return get_resource(recource_registry[resource_id]);
 	}
 
-	HRESULT update();
-
 private:
+	wic_image_loader_c wic_image_loader;
 	ComPtr<ID3D12CommandQueue> upload_queue;
 
 	struct LOAD_QUERY
@@ -132,7 +112,6 @@ private:
 	std::atomic<int> in_progress_tasks_num = 0;
 	std::array<LOAD_QUERY, RESOURCE_LOADING_CONCURRENT_TASKS_MAX_NUM> load_tasks_pool;
 	concurrent_queue<LOAD_QUERY*> load_tasks;
-	concurrent_queue<RESOURCE_ID*> upload_tasks;
 
 	renderer_c* d3d_renderer = nullptr;
 	D3D12MA::Allocator* d3d_allocator = nullptr;
@@ -146,8 +125,4 @@ private:
 		wic_image_loader_c::payload_t texture_payload;
 		RESOURCE_ID resource_id;
 	};
-
-	wic_image_loader_c wic_image_loader;
-
-
 };

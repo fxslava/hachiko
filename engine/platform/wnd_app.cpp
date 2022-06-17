@@ -76,6 +76,7 @@ LRESULT CALLBACK wnd_app_c::wnd_proc(HWND hWnd, UINT message, WPARAM wParam, LPA
     case WM_MOUSEWHEEL:    return wnd->on_wm_mousewheel(wParam, lParam);
     case WM_MOUSEMOVE:     return wnd->on_wm_mousemove(wParam, lParam);
     case WM_DESTROY:
+        //wnd->on_destroy();
         wnd->running = false;
         PostQuitMessage(0);
         break;

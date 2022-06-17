@@ -66,21 +66,24 @@ HRESULT shader_pass_c::create_pso(renderer_c* renderer)
     };
 
     // Describe and create the graphics pipeline state object (PSO).
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
-    psoDesc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
-    psoDesc.pRootSignature = root_signature.Get();
-    psoDesc.VS = CD3DX12_SHADER_BYTECODE(&vertex_shader_bytecode[0], vertex_shader_bytecode.size());
-    psoDesc.PS = CD3DX12_SHADER_BYTECODE(&pixel_shader_bytecode[0], pixel_shader_bytecode.size());
-    psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-    psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-    psoDesc.DepthStencilState.DepthEnable = FALSE;
-    psoDesc.DepthStencilState.StencilEnable = FALSE;
-    psoDesc.SampleMask = UINT_MAX;
-    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    psoDesc.NumRenderTargets = 1;
-    psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-    psoDesc.SampleDesc.Count = 1;
-    CK(d3d_device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pipeline_state)));
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
+    pso_desc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+    pso_desc.pRootSignature = root_signature.Get();
+    pso_desc.VS = CD3DX12_SHADER_BYTECODE(&vertex_shader_bytecode[0], vertex_shader_bytecode.size());
+    pso_desc.PS = CD3DX12_SHADER_BYTECODE(&pixel_shader_bytecode[0], pixel_shader_bytecode.size());
+    pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    pso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    pso_desc.DepthStencilState.DepthEnable = TRUE;
+    pso_desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+    pso_desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+    pso_desc.DepthStencilState.StencilEnable = FALSE;
+    pso_desc.SampleMask = UINT_MAX;
+    pso_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pso_desc.NumRenderTargets = 1;
+    pso_desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    pso_desc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    pso_desc.SampleDesc.Count = 1;
+    CK(d3d_device->CreateGraphicsPipelineState(&pso_desc, IID_PPV_ARGS(&pipeline_state)));
 
     return hres;
 }

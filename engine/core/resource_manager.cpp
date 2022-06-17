@@ -49,13 +49,6 @@ void resource_manager_c::terminate() {
 }
 
 
-resource_manager_c::~resource_manager_c() {
-    if (scheduler) {
-        terminate();
-    }
-}
-
-
 bool resource_manager_c::is_available(const std::wstring& resource_id)
 {
     std::lock_guard guard(resource_lock);
@@ -128,6 +121,22 @@ HRESULT resource_manager_c::create_resource_factory(renderer_c* renderer) {
 }
 
 
+void resource_manager_c::destroy_resource_factory()
+{
+    if (scheduler) {
+        terminate();
+        scheduler = nullptr;
+    }
+
+    for (auto gpu_res : gpu_resources) {
+        if (gpu_res.resource) {
+            gpu_res.resource->Release();
+        }
+    }
+    wic_image_loader.destroy_resource_factory();
+}
+
+
 HRESULT resource_manager_c::wait_for_resources_uploaded()
 {
     HRESULT hres;
@@ -162,23 +171,22 @@ void resource_manager_c::resource_manager_scheduler()
             payload.clear();
         }
 
-        ID3D12GraphicsCommandList* upload_list = nullptr;
+        ID3D12GraphicsCommandList* upload_command_list = nullptr;
 
         for (int i = 0; i < RESOURCE_UPLOAD_CHUNK_SIZE; i++) {
             LOAD_QUERY* load_query = nullptr;
             if (load_tasks.try_pop(load_query))
             {
                 if (load_query) {
-                    --in_progress_tasks_num;
 
-                    if (!upload_list) {
-                        d3d_renderer->begin_upload_command_list(&upload_list);
+                    if (!upload_command_list) {
+                        d3d_renderer->begin_upload_command_list(&upload_command_list);
                     }
 
                 	wic_image_loader_c::payload_t payload_element;
                     wic_image_loader.load_texture(
                         d3d_renderer->get_d3d_device(), 
-                        upload_list, 
+                        upload_command_list, 
                         load_query->resource_path, 
                         resource_names[load_query->resource_id], 
                         payload_element,
@@ -186,6 +194,7 @@ void resource_manager_c::resource_manager_scheduler()
                         gpu_resources[load_query->resource_id].resource);
 
                     payload.push_back(resource_payload_t{ payload_element, load_query->resource_id });
+                    --in_progress_tasks_num;
                 }
                 else
                 {
@@ -198,10 +207,10 @@ void resource_manager_c::resource_manager_scheduler()
             }
         }
 
-        if (upload_list) {
-            d3d_renderer->end_command_list(upload_list);
+        if (upload_command_list) {
+            d3d_renderer->end_command_list(upload_command_list);
 
-            ID3D12CommandList* ppCommandLists[] = { upload_list };
+            ID3D12CommandList* ppCommandLists[] = { upload_command_list };
             upload_queue->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
         }
     }
@@ -216,12 +225,4 @@ void resource_manager_c::resource_manager_scheduler()
 
         payload.clear();
     }
-}
-
-
-HRESULT resource_manager_c::update()
-{
-    ComPtr<ID3D12GraphicsCommandList> d3d_upload_command_list;
-    d3d_renderer->begin_upload_command_list(&d3d_upload_command_list);
-    return S_OK;
 }

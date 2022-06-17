@@ -4,8 +4,9 @@
 
 
 HRESULT renderer_c::create_pipeline(const UINT width, const UINT height, const D3D_FEATURE_LEVEL feature_level, HWND wnd_handle) {
+    screen_resolution = XMINT2(width, height);
     d3d_viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
-    d3d_scissor_rect = CD3DX12_RECT(0, 0, static_cast<LONG>(width), static_cast<LONG>(height));
+    d3d_scissor_rect = CD3DX12_RECT(0, 0, width, height);
     this->wnd_handle = wnd_handle;
 
     HRESULT hres;
@@ -28,7 +29,8 @@ HRESULT renderer_c::create_pipeline(const UINT width, const UINT height, const D
 
     CK(create_command_queues());
     CK(create_swap_chain(swap_chain_frame_num, current_render_target_idx));
-    CK(create_rtv_desc_heap(swap_chain_frame_num));
+    CK(create_descriptor_heaps(swap_chain_frame_num));
+    CK(create_depth_buffer());
     CK(create_render_target_view(swap_chain_frame_num));
     CK(create_direct_command_list());
     CK(create_upload_command_list());
@@ -39,6 +41,7 @@ HRESULT renderer_c::create_pipeline(const UINT width, const UINT height, const D
 
 void renderer_c::destroy_pipeline() {
     wait_for_prev_frame();
+    d3d_depth_buffer->Release();
     CloseHandle(frame_fence_event);
     gpu_allocator->Release();
 }
@@ -51,8 +54,9 @@ HRESULT renderer_c::begin_command_list(ID3D12GraphicsCommandList** command_list)
     CK(d3d_direct_command_list->Reset(d3d_command_allocator.Get(), nullptr));
     d3d_direct_command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(d3d_render_targets[frame_idx].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(d3d_rtv_heap->GetCPUDescriptorHandleForHeapStart(), frame_idx, rtv_desc_size);
-    d3d_direct_command_list->OMSetRenderTargets(1, &rtvHandle, FALSE, nullptr);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(d3d_rtv_heap->GetCPUDescriptorHandleForHeapStart(), frame_idx, rtv_desc_size);
+    D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = d3d_dsv_heap->GetCPUDescriptorHandleForHeapStart();
+    d3d_direct_command_list->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
 
     *command_list = d3d_direct_command_list.Get();
     return hres;
@@ -192,16 +196,56 @@ HRESULT renderer_c::create_swap_chain(const UINT frame_num, UINT& frame_idx) {
 }
 
 
-HRESULT renderer_c::create_rtv_desc_heap(const UINT num_descriptors) {
+HRESULT renderer_c::create_depth_buffer()
+{
+    HRESULT hres;
+    D3D12_CLEAR_VALUE depthOptimizedClearValue;
+    depthOptimizedClearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    depthOptimizedClearValue.DepthStencil.Depth = 1.0f;
+    depthOptimizedClearValue.DepthStencil.Stencil = 0;
+
+    D3D12MA::ALLOCATION_DESC depth_buffer_desc = {};
+    depth_buffer_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
+    ComPtr<ID3D12Resource> d3d_depth_buffer_resource;
+    CK(gpu_allocator->CreateResource(
+        &depth_buffer_desc,
+        &CD3DX12_RESOURCE_DESC::Tex2D(
+            DXGI_FORMAT_D24_UNORM_S8_UINT, 
+            screen_resolution.x, 
+            screen_resolution.y,
+            1,0,1,0,
+            D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
+        D3D12_RESOURCE_STATE_DEPTH_WRITE, &depthOptimizedClearValue, &d3d_depth_buffer, IID_PPV_ARGS(&d3d_depth_buffer_resource)));
+
+    D3D12_DEPTH_STENCIL_VIEW_DESC dsvView = {};
+    dsvView.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    dsvView.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    dsvView.Flags = D3D12_DSV_FLAG_NONE;
+
+    d3d_device->CreateDepthStencilView(d3d_depth_buffer_resource.Get(), &dsvView, d3d_dsv_heap->GetCPUDescriptorHandleForHeapStart());
+    return S_OK;
+}
+
+
+HRESULT renderer_c::create_descriptor_heaps(const UINT num_descriptors) {
     assert(num_descriptors != 0);
 
-    // Describe and create a render target view (RTV) descriptor heap.
-    D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
-    rtvHeapDesc.NumDescriptors = num_descriptors;
-    rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-    rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     HRESULT hres;
-    CK(d3d_device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&d3d_rtv_heap)));
+
+    // Describe and create a render target view (RTV) descriptor heap.
+    D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
+    rtv_heap_desc.NumDescriptors = num_descriptors;
+    rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    CK(d3d_device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&d3d_rtv_heap)));
+
+    // Describe and create a render target view (DSV) descriptor heap.
+    D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
+    dsv_heap_desc.NumDescriptors = 1;
+    dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+    dsv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+    CK(d3d_device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&d3d_dsv_heap)));
 
     rtv_desc_size = d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
     return S_OK;

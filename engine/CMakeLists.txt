@@ -57,8 +57,10 @@ include_directories(
 file(
     GLOB SOURCES
 		./platform/wnd_app.cpp
+		./core/engine.cpp
 	    ./core/input_controller.cpp
 		./core/resource_manager.cpp
+		./core/constant_buffers_manager.cpp
 		./core/wic_resource_loader.cpp
         ./core/renderer.cpp
 		./core/terrain.cpp
@@ -82,6 +84,11 @@ add_library(
 	${HLSL_SHADER_FILES}
 	)
 add_dependencies(${PROJECT_NAME} shaders)
+target_precompile_headers(
+	${PROJECT_NAME}
+	PUBLIC
+		./core/common/pch.h
+)
 
 set(
     DEPS_LIBRARIES

@@ -115,6 +115,18 @@ HRESULT wic_image_loader_c::create_resource_factory(D3D12MA::Allocator* allocato
     return S_OK;
 }
 
+
+void wic_image_loader_c::destroy_resource_factory()
+{
+    if (upload_ring_buffer) {
+        upload_ring_buffer->Release();
+    }
+    /*if (wic_factory) {
+        wic_factory->Release();
+        wic_factory = nullptr;
+    }*/
+}
+
 HRESULT wic_image_loader_c::load_texture(ID3D12Device* device, ID3D12GraphicsCommandList* command_list, const fs::path& texture_path, const std::wstring& resource_name, payload_t& payload, D3D12_RESOURCE_DESC& resource_desc, D3D12MA::Allocation*& texture)
 {
     ComPtr<IWICBitmapDecoder> wic_decoder;

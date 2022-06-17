@@ -31,13 +31,15 @@ private:
 	HRESULT create_direct_command_list();
 	HRESULT create_upload_command_list();
 	HRESULT create_swap_chain(UINT frame_num, UINT& frame_idx);
-	HRESULT create_rtv_desc_heap(UINT num_descriptors);
+	HRESULT create_depth_buffer();
+	HRESULT create_descriptor_heaps(UINT num_descriptors);
 	HRESULT create_render_target_view(UINT frame_num);
 
 	ComPtr<IDXGIFactory4>               dxgi_factory;
 	ComPtr<ID3D12Device>                d3d_device;
 	ComPtr<IDXGISwapChain3>             d3d_swap_chain;
 	ComPtr<ID3D12DescriptorHeap>        d3d_rtv_heap;
+	ComPtr<ID3D12DescriptorHeap>        d3d_dsv_heap;
 	ComPtr<ID3D12CommandQueue>          d3d_direct_queue;
 	ComPtr<ID3D12CommandQueue>          d3d_upload_queue;
 	ComPtr<ID3D12CommandAllocator>      d3d_command_allocator;
@@ -45,12 +47,15 @@ private:
 	ComPtr<ID3D12GraphicsCommandList>   d3d_direct_command_list;
 	ComPtr<ID3D12GraphicsCommandList>   d3d_upload_command_list;
 	std::vector<ComPtr<ID3D12Resource>> d3d_render_targets{};
+	ComPtr<D3D12MA::Allocation>         d3d_depth_buffer;
 
 	CD3DX12_VIEWPORT d3d_viewport;
 	CD3DX12_RECT d3d_scissor_rect;
 	UINT rtv_desc_size = 0;
 	UINT swap_chain_frame_num = 2;
 	UINT current_render_target_idx = 0;
+
+	XMINT2 screen_resolution;
 
 	// Synchronization objects.
 	UINT   frame_idx = 0;
