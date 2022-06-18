@@ -4,7 +4,6 @@
 #include "hachiko_api.h"
 #include "d3dx12.h"
 #include "DirectXMath.h"
-#include "constant_buffers_manager.h"
 
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
@@ -20,11 +19,13 @@ public:
 	HRESULT begin_upload_command_list(ID3D12GraphicsCommandList** command_list);
 	HRESULT end_command_list(ID3D12GraphicsCommandList* command_list);
 
-	ID3D12Device* get_d3d_device() { return d3d_device.Get(); };
+	ID3D12Device*       get_d3d_device()           { return d3d_device.Get(); };
 	ID3D12CommandQueue* get_upload_command_queue() { return d3d_upload_queue.Get(); }
-	D3D12MA::Allocator* get_gpu_allocator() { return gpu_allocator.Get(); };
+	D3D12MA::Allocator* get_gpu_allocator()        { return gpu_allocator; };
 
-	void destroy_pipeline();
+	~renderer_c() {
+		destroy_pipeline();
+	}
 
 private:
 	std::vector <IDXGIAdapter1*> enum_adapters(D3D_FEATURE_LEVEL feature_level);
@@ -36,6 +37,7 @@ private:
 	HRESULT create_depth_buffer();
 	HRESULT create_descriptor_heaps(UINT num_descriptors);
 	HRESULT create_render_target_view(UINT frame_num);
+	void    destroy_pipeline();
 
 	ComPtr<IDXGIFactory4>               dxgi_factory;
 	ComPtr<ID3D12Device>                d3d_device;
@@ -51,7 +53,7 @@ private:
 	ComPtr<ID3D12GraphicsCommandList>   d3d_direct_command_list;
 	ComPtr<ID3D12GraphicsCommandList>   d3d_upload_command_list;
 	std::vector<ComPtr<ID3D12Resource>> d3d_render_targets{};
-	ComPtr<D3D12MA::Allocation>         d3d_depth_buffer;
+	D3D12MA::Allocation*                d3d_depth_buffer = nullptr;
 
 	CD3DX12_VIEWPORT d3d_viewport;
 	CD3DX12_RECT d3d_scissor_rect;
@@ -68,7 +70,7 @@ private:
 	ComPtr<ID3D12Fence> frame_fance;
 
 	// Memory managment
-	ComPtr<D3D12MA::Allocator>	gpu_allocator;
+	D3D12MA::Allocator*	gpu_allocator = nullptr;
 
 	// hWnd
 	HWND wnd_handle = 0;

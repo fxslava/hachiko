@@ -62,9 +62,8 @@ HRESULT constant_buffers_manager_c::begin(ENGINE_COMMON_CB*& common_cb)
 
     const CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
     CK(constant_buffer_resource->Map(0, &readRange, reinterpret_cast<void**>(&engine_common_cb_ptr)));
-    memcpy(engine_common_cb_ptr, &engine_common, ENGINE_COMMON_CB_SIZE);
 
-    common_cb = &engine_common;
+    common_cb = engine_common_cb_ptr;
 
     return S_OK;
 }

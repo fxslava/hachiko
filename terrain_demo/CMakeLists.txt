@@ -1,9 +1,14 @@
 project(demo_terrain)
 
+set(CMAKE_CXX_STANDARD 17)
+
 include_directories(
     ../engine/platform
     ../engine/api/include
+    ../engine/core/
+    ../engine/core/common
     ../engine/core/thirdparty/d3d12memalloc
+    ../engine/core/thirdparty/directxmath/inc
     ../engine/core/thirdparty/directx
 )
 

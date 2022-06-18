@@ -98,12 +98,16 @@ HRESULT renderer_c::end_command_list(ID3D12GraphicsCommandList* command_list)
 
 HRESULT renderer_c::clear_render_target(float clear_color[4])
 {
+    D3D12_RECT rect{ 0, 0, screen_resolution.x, screen_resolution.y };
+
     d3d_render_command_list->RSSetViewports(1, &d3d_viewport);
     d3d_render_command_list->RSSetScissorRects(1, &d3d_scissor_rect);
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(d3d_rtv_heap->GetCPUDescriptorHandleForHeapStart(), frame_idx, rtv_desc_size);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE dsv_handle(d3d_dsv_heap->GetCPUDescriptorHandleForHeapStart());
 
     d3d_render_command_list->ClearRenderTargetView(rtv_handle, clear_color, 0, nullptr);
+    d3d_render_command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
     return S_OK;
 }

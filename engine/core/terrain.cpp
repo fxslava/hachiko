@@ -1,25 +1,28 @@
 #include "terrain.h"
+#include "engine.h"
 #include "d3dx12.h"
 #include "d3dcompiler.h"
 #include "utils.h"
 
-HRESULT terrain_base_c::allocate_resources(renderer_i * renderer)
+HRESULT terrain_base_c::allocate_resources()
 {
-    ComPtr<D3D12MA::Allocator> gpu_allocator(renderer->get_gpu_allocator());
-    renderer_c* d3d_renderer = reinterpret_cast<renderer_c*>(renderer);
+    auto& engine = engine_c::get_instance();
+    d3d_renderer = engine.get_renderer();
+    resource_manager = engine.get_resource_manager();
+    constant_buffers_manager = engine.get_constant_buffers_manager();
+
+    const ComPtr<D3D12MA::Allocator> gpu_allocator(d3d_renderer->get_gpu_allocator());
 
     d3d_device = d3d_renderer->get_d3d_device();
-
-    float aspect_ratio = 1920.0f / 1080.0f;
 
     HRESULT hres = S_OK;
     CK(sample_shader_pass.create_pso(d3d_renderer));
 
     Vertex triangleVertices[] =
     {
-        { { 0.0f, 0.25f * aspect_ratio, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
-        { { 0.25f, -0.25f * aspect_ratio, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
-        { { -0.25f, -0.25f * aspect_ratio, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
+        { { 0.0f, 0.25f, 0.0f }, { 1.0f, 0.0f, 0.0f, 1.0f } },
+        { { 0.25f, -0.25f, 0.0f }, { 0.0f, 1.0f, 0.0f, 1.0f } },
+        { { -0.25f, -0.25f, 0.0f }, { 0.0f, 0.0f, 1.0f, 1.0f } },
     };
     const UINT triangle_vertices_size = sizeof(triangleVertices);
 
@@ -39,12 +42,7 @@ HRESULT terrain_base_c::allocate_resources(renderer_i * renderer)
     vertex_buffer_view.StrideInBytes = sizeof(Vertex);
     vertex_buffer_view.SizeInBytes = triangle_vertices_size;
 
-    renderer->wait_for_prev_frame();
-
-    CK(resource_manager.create_resource_factory(d3d_renderer));
-
-    resource_manager.init(fs::current_path() / fs::path("resources"));
-    resource_manager.start();
+    d3d_renderer->wait_for_prev_frame();
 
     // Describe and create a shader resource view (SRV) heap for the texture.
     D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
@@ -62,22 +60,11 @@ HRESULT terrain_base_c::allocate_resources(renderer_i * renderer)
     cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     CK(d3d_device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(&cbv_heap)));
 
-    CK(constant_buffers_manager.allocate_resources(d3d_renderer));
-
     return S_OK;
 }
 
 void terrain_base_c::render(ID3D12GraphicsCommandList* command_list)
 {
-    ENGINE_COMMON_CB* p_engine_common_cb = nullptr;
-
-    if (SUCCEEDED(constant_buffers_manager.begin(p_engine_common_cb))) {
-        D3D12_RANGE written_range;
-        written_range.Begin = 0;
-        written_range.End = sizeof(ENGINE_COMMON_CB);
-        constant_buffers_manager.end(command_list, written_range);
-    }
-
     sample_shader_pass.setup(command_list);
 
     if (srv_heap_not_empty) {
@@ -87,7 +74,7 @@ void terrain_base_c::render(ID3D12GraphicsCommandList* command_list)
     }
 
     {
-        auto cbv_heap = constant_buffers_manager.get_cbv_heap();
+        auto cbv_heap = constant_buffers_manager->get_cbv_heap();
         ID3D12DescriptorHeap* ppHeaps[] = { cbv_heap };
         command_list->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
         command_list->SetGraphicsRootDescriptorTable(0, cbv_heap->GetGPUDescriptorHandleForHeapStart());
@@ -102,9 +89,9 @@ HRESULT terrain_base_c::update()
 {
     const std::wstring resource_name = L"sample_terrain/LOD1/image_x0_y1.bmp";
 
-    if (resource_manager.query_resource(resource_name) == resource_manager_c::AVAILABLE)
+    if (resource_manager->query_resource(resource_name) == resource_manager_c::AVAILABLE)
     {
-        const auto allocation = resource_manager.get_resource(resource_name);
+        const auto allocation = resource_manager->get_resource(resource_name);
 
         // Describe and create a SRV for the texture.
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};

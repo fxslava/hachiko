@@ -1,12 +1,11 @@
 #include "demo_terrain_app.h"
-#include <assert.h>
+#include "engine.h"
 #include <comdef.h>
 
 #define CK(v) if (FAILED(hres = (v))) return hres
 
 demo_terrain_app_c::demo_terrain_app_c(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int cmd_show) {
     wnd_app_c::create_window(instance, prev_instance, cmd_line, cmd_show);
-    create_render_device(d3d_renderer);
 
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_UP,    false, false, ACTION_CAMERA_MOVE_FORWARD);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_DOWN,  false, false, ACTION_CAMERA_MOVE_BACKWARD);
@@ -17,26 +16,49 @@ demo_terrain_app_c::demo_terrain_app_c(HINSTANCE instance, HINSTANCE prev_instan
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_A,     false, false, ACTION_CAMERA_MOVE_LEFT);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_D,     false, false, ACTION_CAMERA_MOVE_RIGHT);
 
+    view_camera.set_position(
+        XMVectorSet(0.f, 0.f,-1.f, 0.f),
+        XMVectorSet(0.f, 0.f, 1.f, 0.f)
+    );
+    view_camera.motion_config(0.1f);
     view_camera.subscribe(mouse_keyboard_input_controller);
 
-    create_terrain_actor(terrain);
+    update_timestamp();
+}
+
+
+void demo_terrain_app_c::update_timestamp()
+{
+    const auto duration = std::chrono::system_clock::now().time_since_epoch();
+    const auto new_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+
+    if (last_timestamp >= 0) {
+        elapsed_time = static_cast<float>(new_timestamp - last_timestamp) * (1.f / 1000.f);
+    }
 }
 
 
 HRESULT demo_terrain_app_c::create_pipline(D3D_FEATURE_LEVEL feature_level) {
     HRESULT hres;
 
-    CK(d3d_renderer->create_pipeline(1920, 1080, feature_level, wnd_handle));
+    auto& engine = engine_c::get_instance();
 
-    CK(terrain->allocate_resources(d3d_renderer));
+    CK(engine.init_sub_systems(1920, 1080, feature_level, wnd_handle));
+    CK(terrain.allocate_resources());
+
+    // get subsystems pointers
+    d3d_renderer = engine.get_renderer();
+    resource_menager = engine.get_resource_manager();
+    constant_buffers_manager = engine.get_constant_buffers_manager();
 
     return S_OK;
 }
 
 
-HRESULT demo_terrain_app_c::update()
-{
-    return terrain->update();
+HRESULT demo_terrain_app_c::update() {
+    update_timestamp();
+    view_camera.update(elapsed_time);
+    return terrain.update();
 }
 
 
@@ -46,21 +68,34 @@ HRESULT demo_terrain_app_c::on_render() {
     HRESULT hres;
     CK(d3d_renderer->begin_render(&command_list));
 
+    ENGINE_COMMON_CB* p_engine_common_cb = nullptr;
+
+    if (SUCCEEDED(constant_buffers_manager->begin(p_engine_common_cb))) {
+        D3D12_RANGE written_range;
+        written_range.Begin = 0;
+        written_range.End = sizeof(ENGINE_COMMON_CB);
+
+        view_camera.apply_camera_view();
+
+        memcpy(p_engine_common_cb, &constant_buffers_manager->engine_common, sizeof(ENGINE_COMMON_CB));
+        constant_buffers_manager->end(command_list, written_range);
+    }
+
     update();
 
     float clear_color[] = { 0.4f, 0.4f, 0.7f, 1.0f };
     CK(d3d_renderer->clear_render_target(clear_color));
 
-    terrain->render(command_list);
+    terrain.render(command_list);
 
-    return d3d_renderer->end_render(command_list);
+    CK(d3d_renderer->end_render(command_list));
+    return S_OK;
 }
 
 
 void demo_terrain_app_c::on_destroy() {
-    destroy_terrain_actor(terrain);
-    d3d_renderer->destroy_pipeline();
-    destroy_render_device(d3d_renderer);
+    auto& engine = engine_c::get_instance();
+    engine.shut_down();
 }
 
 
@@ -78,5 +113,5 @@ void demo_terrain_app_c::static_render(wnd_app_c* wnd) {
 
 
 int demo_terrain_app_c::render_loop() {
-    return wnd_app_c::loop(this, static_render);
+    return loop(this, static_render);
 }
