@@ -9,7 +9,9 @@ constexpr ACTION_ID ACTION_CAMERA_MOVE_FORWARD  = 2;
 constexpr ACTION_ID ACTION_CAMERA_MOVE_BACKWARD = 3;
 constexpr ACTION_ID ACTION_CAMERA_MOVE_LEFT     = 4;
 constexpr ACTION_ID ACTION_CAMERA_MOVE_RIGHT    = 5;
-constexpr ACTION_ID ACTION_CAMERA_END           = 6;
+constexpr ACTION_ID ACTION_CAMERA_ROTATE_UP     = 6;
+constexpr ACTION_ID ACTION_CAMERA_ROTATE_RIGHT  = 7;
+constexpr ACTION_ID ACTION_CAMERA_END           = 8;
 
 using namespace DirectX;
 
@@ -53,10 +55,14 @@ public:
 	void call(ACTION_ID action_id, INPUT_CONTROLLER_ACTION_STATE action_state);
 	void update(float elapsed_time);
 
+	FXMVECTOR make_look_dir(float azim, float polar) const;
+
 protected:
 	void XM_CALLCONV calculate_move_vectors();
 
 private:
+	float azimuth  = XM_PIDIV2;
+	float polar    = 0.f;
 	float velocity = 0.0f;
 	XMFLOAT3A move_up{ 0.0f, 0.0f, 0.0f };
 	XMFLOAT3A move_right{ 0.0f, 0.0f, 0.0f };

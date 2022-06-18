@@ -110,6 +110,8 @@ enum MOUSE_KEYBOARD_VIRTUAL_KEY {
 	VIRTUAL_KEY_F10,
 	VIRTUAL_KEY_F11,
 	VIRTUAL_KEY_F12,
+	VIRTUAL_MOUSE_X,
+	VIRTUAL_MOUSE_Y,
 	VIRTUAL_KEY_NUM
 };
 
@@ -142,8 +144,10 @@ struct INPUT_CONTROLLER_CONFIG
 	INT32     double_tap_duration_threashold_ms;
 };
 
-using action_event_c         = game_event_c   <ACTION_ID, INPUT_CONTROLLER_ACTION_STATE>;
-using action_event_handler_c = event_handler_i<ACTION_ID, INPUT_CONTROLLER_ACTION_STATE>;
+using action_event_c              = game_event_c   <ACTION_ID, INPUT_CONTROLLER_ACTION_STATE>;
+using action_event_handler_c      = event_handler_i<ACTION_ID, INPUT_CONTROLLER_ACTION_STATE>;
+using action_move_event_c         = game_event_c   <ACTION_ID, INPUT_CONTROLLER_MOUSE_STATE>;
+using action_move_event_handler_c = event_handler_i<ACTION_ID, INPUT_CONTROLLER_MOUSE_STATE>;
 
 class input_controller_i
 {
@@ -153,6 +157,8 @@ public:
 	virtual INPUT_CONTROLLER_MOUSE_STATE get_mouse_state() = 0;
 	virtual void subscribe(action_event_handler_c* handler, ACTION_ID action) = 0;
 	virtual void unsubscribe(action_event_handler_c* handler, ACTION_ID action) = 0;
+	virtual void subscribe(action_move_event_handler_c* handler, ACTION_ID action) = 0;
+	virtual void unsubscribe(action_move_event_handler_c* handler, ACTION_ID action) = 0;
 	virtual void every_frame_update(float elapsed_time) = 0;
 };
 

@@ -15,6 +15,8 @@ demo_terrain_app_c::demo_terrain_app_c(HINSTANCE instance, HINSTANCE prev_instan
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_S,     false, false, ACTION_CAMERA_MOVE_BACKWARD);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_A,     false, false, ACTION_CAMERA_MOVE_LEFT);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_D,     false, false, ACTION_CAMERA_MOVE_RIGHT);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_MOUSE_X,   false, false, ACTION_CAMERA_ROTATE_RIGHT);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_MOUSE_Y,   false, false, ACTION_CAMERA_ROTATE_UP);
 
     view_camera.set_position(
         XMVectorSet(0.f, 0.f,-1.f, 0.f),

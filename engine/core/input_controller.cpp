@@ -1,5 +1,6 @@
 #include "input_controller.h"
 #include "virtual_keys.hpp"
+#include <Windowsx.h>
 
 #define GET_SHIFT_STATE (GetAsyncKeyState(VK_LSHIFT) || GetAsyncKeyState(VK_RSHIFT))
 #define GET_CTRL_STATE (GetAsyncKeyState(VK_LCONTROL) || GetAsyncKeyState(VK_RCONTROL))
@@ -94,6 +95,16 @@ LRESULT mouse_keyboard_game_controller_c::on_wm_mousewheel(WPARAM wParam, LPARAM
 }
 
 LRESULT mouse_keyboard_game_controller_c::on_wm_mousemove(WPARAM wParam, LPARAM lParam) {
+	const INT16 xPos = GET_X_LPARAM(lParam);
+	const INT16 yPos = GET_Y_LPARAM(lParam);
+
+	if (last_mouse_x != INT16_MIN || last_mouse_y != INT16_MIN)	{
+		mouse_move_x = xPos - last_mouse_x;
+		mouse_move_y = yPos - last_mouse_y;
+	}
+	last_mouse_x = xPos;
+	last_mouse_y = yPos;
+
 	return 0;
 }
 
@@ -111,6 +122,16 @@ INPUT_CONTROLLER_ACTION_STATE action_state_init(mouse_keyboard_game_controller_c
 	state.duration = static_cast<int>(action->duration / 0.001f);
 	state.off_duration = static_cast<int>(action->off_duration / 0.001f);
 	state.press_count = action->press_count;
+	return state;
+}
+
+INPUT_CONTROLLER_MOUSE_STATE move_action_state_init(mouse_keyboard_game_controller_c::ACTION_DESC* action)
+{
+	INPUT_CONTROLLER_MOUSE_STATE state;
+	state.mouse_X = action->move_pos_x;
+	state.mouse_Y = action->move_pos_y;
+	state.mouse_speed_X = action->move_speed_x;
+	state.mouse_speed_Y = action->move_speed_y;
 	return state;
 }
 
@@ -168,6 +189,12 @@ void mouse_keyboard_game_controller_c::update_actions(MOUSE_KEYBOARD_VIRTUAL_KEY
 			case UPDATE_ACTION_SET:   action->state = true; action->press_count++; break;
 			case UPDATE_ACTION_RESET: action->state = false; break;
 			case UPDATE_ACTION_DBLCLK:action->dbl_click = true; break;
+			case UPDATE_ACTION_MOVE:
+				action->move_pos_x = last_mouse_x;
+				action->move_pos_y = last_mouse_y;
+				action->move_speed_x = mouse_move_x;
+				action->move_speed_y = mouse_move_y;
+				break;
 			}
 			if (call_action) {
 				if (action->state)
@@ -175,7 +202,11 @@ void mouse_keyboard_game_controller_c::update_actions(MOUSE_KEYBOARD_VIRTUAL_KEY
 				else
 					update_action_desc_on_reset(action);
 
-				action->event(action->action_id, action_state_init(action));
+				if (proc == UPDATE_ACTION_MOVE) {
+					action->move_event(action->action_id, move_action_state_init(action));
+				} else	{
+					action->event(action->action_id, action_state_init(action));
+				}
 			}
 		}
 	}
@@ -206,5 +237,21 @@ void mouse_keyboard_game_controller_c::unsubscribe(action_event_handler_c* handl
 	auto* desc = actions_desc[action];
 	if (desc) {
 		desc->event -= handler;
+	}
+}
+
+void mouse_keyboard_game_controller_c::subscribe(action_move_event_handler_c* handler, ACTION_ID action)
+{
+	auto* desc = actions_desc[action];
+	if (desc) {
+		desc->move_event += handler;
+	}
+}
+
+void mouse_keyboard_game_controller_c::unsubscribe(action_move_event_handler_c* handler, ACTION_ID action)
+{
+	auto* desc = actions_desc[action];
+	if (desc) {
+		desc->move_event -= handler;
 	}
 }

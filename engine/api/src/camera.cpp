@@ -93,6 +93,21 @@ void movable_camera_c::call(ACTION_ID action_id, INPUT_CONTROLLER_ACTION_STATE a
 };
 
 
+FXMVECTOR movable_camera_c::make_look_dir(const float azim, const float polar) const
+{
+	FXMVECTOR up      = XMLoadFloat3A(&move_up);
+	FXMVECTOR forward = XMLoadFloat3A(&move_forward);
+	FXMVECTOR right   = XMLoadFloat3A(&move_right);
+
+	const float sin_polar = sinf(polar);
+	FXMVECTOR x = XMVectorScale(right,   sin_polar * cosf(azim));
+	FXMVECTOR y = XMVectorScale(forward, sin_polar * sinf(azim));
+	FXMVECTOR z = XMVectorScale(up,      cosf(polar));
+
+	return x + y + z;
+}
+
+
 void movable_camera_c::update(float elapsed_time)
 {
 	auto pos = XMLoadFloat3A(&position);
