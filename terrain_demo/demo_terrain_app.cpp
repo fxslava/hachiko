@@ -44,18 +44,16 @@ HRESULT demo_terrain_app_c::on_render() {
 
     ID3D12GraphicsCommandList* command_list;
     HRESULT hres;
-    CK(d3d_renderer->begin_command_list(&command_list));
+    CK(d3d_renderer->begin_render(&command_list));
 
     update();
 
     float clear_color[] = { 0.4f, 0.4f, 0.7f, 1.0f };
-    CK(d3d_renderer->clear_render_target(command_list, clear_color));
+    CK(d3d_renderer->clear_render_target(clear_color));
 
     terrain->render(command_list);
 
-    CK(d3d_renderer->end_command_list(command_list));
-
-    return d3d_renderer->on_render();
+    return d3d_renderer->end_render(command_list);
 }
 
 

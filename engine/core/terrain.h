@@ -18,6 +18,7 @@ public:
 		if (vertex_buffer) {
 			vertex_buffer->Release();
 		}
+		constant_buffers_manager.destroy_resources();
 		resource_manager.destroy_resource_factory();
 	}
 	HRESULT allocate_resources(renderer_i* renderer);
@@ -33,10 +34,10 @@ protected:
 	};
 
 	D3D12MA::Allocation* vertex_buffer = nullptr;
-	D3D12MA::Allocation* constant_buffer = nullptr;
 	D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
 	shader_pass_c sample_shader_pass;
 	resource_manager_c resource_manager;
+	constant_buffers_manager_c constant_buffers_manager;
 
 	ComPtr<ID3D12Device> d3d_device;
 	ComPtr<ID3D12DescriptorHeap> srv_heap;

@@ -62,32 +62,35 @@ HRESULT terrain_base_c::allocate_resources(renderer_i * renderer)
     cbvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     CK(d3d_device->CreateDescriptorHeap(&cbvHeapDesc, IID_PPV_ARGS(&cbv_heap)));
 
-    D3D12MA::ALLOCATION_DESC constant_buffer_desc = {};
-    constant_buffer_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
-
-    ComPtr<ID3D12Resource> constant_buffer_resource;
-    CK(gpu_allocator->CreateResource(
-        &constant_buffer_desc, 
-        &CD3DX12_RESOURCE_DESC::Buffer(triangle_vertices_size), 
-        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, &constant_buffer, IID_PPV_ARGS(&constant_buffer_resource)));
-
-    // Describe and create a constant buffer view.
-    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
-    cbvDesc.BufferLocation = constant_buffer_resource->GetGPUVirtualAddress();
-    //cbvDesc.SizeInBytes = constantBufferSize;
-    d3d_device->CreateConstantBufferView( & cbvDesc, cbv_heap->GetCPUDescriptorHandleForHeapStart());
+    CK(constant_buffers_manager.allocate_resources(d3d_renderer));
 
     return S_OK;
 }
 
 void terrain_base_c::render(ID3D12GraphicsCommandList* command_list)
 {
+    ENGINE_COMMON_CB* p_engine_common_cb = nullptr;
+
+    if (SUCCEEDED(constant_buffers_manager.begin(p_engine_common_cb))) {
+        D3D12_RANGE written_range;
+        written_range.Begin = 0;
+        written_range.End = sizeof(ENGINE_COMMON_CB);
+        constant_buffers_manager.end(command_list, written_range);
+    }
+
     sample_shader_pass.setup(command_list);
 
     if (srv_heap_not_empty) {
         ID3D12DescriptorHeap* ppHeaps[] = { srv_heap.Get() };
         command_list->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-        command_list->SetGraphicsRootDescriptorTable(0, srv_heap->GetGPUDescriptorHandleForHeapStart());
+        command_list->SetGraphicsRootDescriptorTable(1, srv_heap->GetGPUDescriptorHandleForHeapStart());
+    }
+
+    {
+        auto cbv_heap = constant_buffers_manager.get_cbv_heap();
+        ID3D12DescriptorHeap* ppHeaps[] = { cbv_heap };
+        command_list->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
+        command_list->SetGraphicsRootDescriptorTable(0, cbv_heap->GetGPUDescriptorHandleForHeapStart());
     }
 
     command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
