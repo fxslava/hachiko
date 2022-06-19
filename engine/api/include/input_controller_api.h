@@ -110,8 +110,6 @@ enum MOUSE_KEYBOARD_VIRTUAL_KEY {
 	VIRTUAL_KEY_F10,
 	VIRTUAL_KEY_F11,
 	VIRTUAL_KEY_F12,
-	VIRTUAL_MOUSE_X,
-	VIRTUAL_MOUSE_Y,
 	VIRTUAL_KEY_NUM
 };
 
@@ -128,15 +126,9 @@ struct INPUT_CONTROLLER_ACTION_STATE
 	UINT32    duration     = 0;
 	UINT32    off_duration = 0;
 	UINT32    press_count  = 0;
+	INT16     control_pos  = -1;
+	INT16     control_vel  = -1;
 	ACTION_ID action_id    = INVALID_ACTION_ID;
-};
-
-struct INPUT_CONTROLLER_MOUSE_STATE
-{
-	INT32     mouse_X = -1;
-	INT32     mouse_Y = -1;
-	INT32     mouse_speed_X = 0;
-	INT32     mouse_speed_Y = 0;
 };
 
 struct INPUT_CONTROLLER_CONFIG
@@ -146,19 +138,14 @@ struct INPUT_CONTROLLER_CONFIG
 
 using action_event_c              = game_event_c   <ACTION_ID, INPUT_CONTROLLER_ACTION_STATE>;
 using action_event_handler_c      = event_handler_i<ACTION_ID, INPUT_CONTROLLER_ACTION_STATE>;
-using action_move_event_c         = game_event_c   <ACTION_ID, INPUT_CONTROLLER_MOUSE_STATE>;
-using action_move_event_handler_c = event_handler_i<ACTION_ID, INPUT_CONTROLLER_MOUSE_STATE>;
 
 class input_controller_i
 {
 public:
 	virtual void init(INPUT_CONTROLLER_CONFIG config) = 0;
 	virtual INPUT_CONTROLLER_ACTION_STATE get_action_state(ACTION_ID action) = 0;
-	virtual INPUT_CONTROLLER_MOUSE_STATE get_mouse_state() = 0;
 	virtual void subscribe(action_event_handler_c* handler, ACTION_ID action) = 0;
 	virtual void unsubscribe(action_event_handler_c* handler, ACTION_ID action) = 0;
-	virtual void subscribe(action_move_event_handler_c* handler, ACTION_ID action) = 0;
-	virtual void unsubscribe(action_move_event_handler_c* handler, ACTION_ID action) = 0;
 	virtual void every_frame_update(float elapsed_time) = 0;
 };
 
@@ -182,10 +169,21 @@ public:
 	virtual LRESULT on_wm_mousemove(WPARAM wParam, LPARAM lParam) = 0;
 };
 
+
+enum INPUT_CONTROLLER_MOUSE_MOVE_MASK
+{
+	MOUSE_MOVE_MASK_NOMOUSE = 0,
+	MOUSE_MOVE_MASK_MOUSE_X,
+	MOUSE_MOVE_MASK_MOUSE_Y,
+	MOUSE_MOVE_MASK_MOUSE_WHEEL
+};
+
+
 class mouse_keyboard_input_controller_i : public input_controller_i, public mouse_keyboard_listener_i
 {
 public:
 	virtual void register_action_id(MOUSE_KEYBOARD_VIRTUAL_KEY vitrtual_key, bool shift_key, bool ctrl_key, ACTION_ID action) = 0;
+	virtual void associate_with_mouse(ACTION_ID action, INPUT_CONTROLLER_MOUSE_MOVE_MASK mouse_mask, bool activate_on_move = true) = 0;
 };
 
 void create_mouse_keyboard_input_controller(mouse_keyboard_input_controller_i*& input_controller);

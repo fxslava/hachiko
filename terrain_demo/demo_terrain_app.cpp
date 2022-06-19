@@ -7,16 +7,19 @@
 demo_terrain_app_c::demo_terrain_app_c(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int cmd_show) {
     wnd_app_c::create_window(instance, prev_instance, cmd_line, cmd_show);
 
-    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_UP,    false, false, ACTION_CAMERA_MOVE_FORWARD);
-    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_DOWN,  false, false, ACTION_CAMERA_MOVE_BACKWARD);
-    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_LEFT,  false, false, ACTION_CAMERA_MOVE_LEFT);
-    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_RIGHT, false, false, ACTION_CAMERA_MOVE_RIGHT);
-    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_W,     false, false, ACTION_CAMERA_MOVE_FORWARD);
-    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_S,     false, false, ACTION_CAMERA_MOVE_BACKWARD);
-    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_A,     false, false, ACTION_CAMERA_MOVE_LEFT);
-    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_D,     false, false, ACTION_CAMERA_MOVE_RIGHT);
-    mouse_keyboard_input_controller->register_action_id(VIRTUAL_MOUSE_X,   false, false, ACTION_CAMERA_ROTATE_RIGHT);
-    mouse_keyboard_input_controller->register_action_id(VIRTUAL_MOUSE_Y,   false, false, ACTION_CAMERA_ROTATE_UP);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_UP, false, false, ACTION_CAMERA_MOVE_FORWARD);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_DOWN,    false, false, ACTION_CAMERA_MOVE_BACKWARD);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_LEFT,    false, false, ACTION_CAMERA_MOVE_LEFT);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_RIGHT,   false, false, ACTION_CAMERA_MOVE_RIGHT);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_W,       false, false, ACTION_CAMERA_MOVE_FORWARD);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_S,       false, false, ACTION_CAMERA_MOVE_BACKWARD);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_A,       false, false, ACTION_CAMERA_MOVE_LEFT);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_D,       false, false, ACTION_CAMERA_MOVE_RIGHT);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_LBUTTON, false, false, ACTION_CAMERA_ROTATE_RIGHT);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_LBUTTON, false, false, ACTION_CAMERA_ROTATE_UP);
+
+    mouse_keyboard_input_controller->associate_with_mouse(ACTION_CAMERA_ROTATE_RIGHT, MOUSE_MOVE_MASK_MOUSE_X, false);
+    mouse_keyboard_input_controller->associate_with_mouse(ACTION_CAMERA_ROTATE_UP, MOUSE_MOVE_MASK_MOUSE_Y, false);
 
     view_camera.set_position(
         XMVectorSet(0.f, 0.f,-1.f, 0.f),
@@ -31,7 +34,7 @@ demo_terrain_app_c::demo_terrain_app_c(HINSTANCE instance, HINSTANCE prev_instan
 
 void demo_terrain_app_c::update_timestamp()
 {
-    const auto duration = std::chrono::system_clock::now().time_since_epoch();
+    const auto duration = std::chrono::steady_clock::now().time_since_epoch();
     const auto new_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
 
     if (last_timestamp >= 0) {

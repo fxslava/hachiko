@@ -43,7 +43,7 @@ public:
 };
 
 
-class movable_camera_c : public action_event_handler_c, public render_camera_c
+class movable_camera_c : public render_camera_c
 {
 public:
 	movable_camera_c();
@@ -52,21 +52,33 @@ public:
 
 	void motion_config(float velocity_);
 	void subscribe(input_controller_i* controller);
-	void call(ACTION_ID action_id, INPUT_CONTROLLER_ACTION_STATE action_state);
 	void update(float elapsed_time);
 
-	FXMVECTOR make_look_dir(float azim, float polar) const;
+private:
+	class camera_input_event_handler_c : public action_event_handler_c
+	{
+	public:
+		camera_input_event_handler_c(movable_camera_c& camera) : camera(camera) {};
+		void call(ACTION_ID action_id, INPUT_CONTROLLER_ACTION_STATE action_state);
+	private:
+		movable_camera_c& camera;
+	};
 
 protected:
 	void XM_CALLCONV calculate_move_vectors();
+	void make_move_dir();
 
 private:
-	float azimuth  = XM_PIDIV2;
-	float polar    = 0.f;
+	camera_input_event_handler_c camera_input_event_listener;
+
+	float azimuth  = 0.f;
+	float polar    = XM_PIDIV2;
 	float velocity = 0.0f;
-	XMFLOAT3A move_up{ 0.0f, 0.0f, 0.0f };
-	XMFLOAT3A move_right{ 0.0f, 0.0f, 0.0f };
-	XMFLOAT3A move_forward{ 0.0f, 0.0f, 0.0f };
+	float mouse_speed = XM_2PI / 1000.f;
+
+	XMFLOAT3A move_up{ 0.0f, 1.0f, 0.0f };
+	XMFLOAT3A move_right{ 1.0f, 0.0f, 0.0f };
+	XMFLOAT3A move_forward{ 0.0f, 0.0f, 1.0f };
 
 	bool state_up = false;
 	bool state_down = false;

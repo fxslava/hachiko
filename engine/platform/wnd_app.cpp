@@ -88,14 +88,22 @@ LRESULT CALLBACK wnd_app_c::wnd_proc(HWND hWnd, UINT message, WPARAM wParam, LPA
 int wnd_app_c::loop(wnd_app_c* ctx, render_callback_t render_cb) {
     MSG msg;
     while (ctx->running) {
-        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+        bool perform_idle = true;
+
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            if (msg.message == WM_QUIT) {
+                return (int)msg.wParam;
+            }
+
             TranslateMessage(&msg);
             DispatchMessage(&msg);
 
-            if (render_cb) render_cb(ctx);
+            if (msg.message == WM_KEYDOWN || msg.message == WM_KEYUP || msg.message == WM_CHAR) {
+                perform_idle = false;
+            }
         }
 
-        if (render_cb) render_cb(ctx);
+        if (render_cb && perform_idle) render_cb(ctx);
     }
     ctx->on_destroy();
 

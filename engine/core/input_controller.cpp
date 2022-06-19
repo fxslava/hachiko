@@ -105,6 +105,21 @@ LRESULT mouse_keyboard_game_controller_c::on_wm_mousemove(WPARAM wParam, LPARAM 
 	last_mouse_x = xPos;
 	last_mouse_y = yPos;
 
+	for (auto& action : mouse_actions) {
+		switch (action->mouse_mask) {
+		case MOUSE_MOVE_MASK_MOUSE_X:
+			action->ctrl_pos = last_mouse_x;
+			action->ctrl_vel = mouse_move_x;
+			if (action->state || action->activate_on_move) action->event(action->action_id, action_state_init(action));
+			break;
+		case MOUSE_MOVE_MASK_MOUSE_Y:
+			action->ctrl_pos = last_mouse_y;
+			action->ctrl_vel = mouse_move_y;
+			if (action->state || action->activate_on_move) action->event(action->action_id, action_state_init(action));
+			break;
+		}
+	}
+
 	return 0;
 }
 
@@ -122,18 +137,11 @@ INPUT_CONTROLLER_ACTION_STATE action_state_init(mouse_keyboard_game_controller_c
 	state.duration = static_cast<int>(action->duration / 0.001f);
 	state.off_duration = static_cast<int>(action->off_duration / 0.001f);
 	state.press_count = action->press_count;
+	state.control_pos = action->ctrl_pos;
+	state.control_vel = action->ctrl_vel;
 	return state;
 }
 
-INPUT_CONTROLLER_MOUSE_STATE move_action_state_init(mouse_keyboard_game_controller_c::ACTION_DESC* action)
-{
-	INPUT_CONTROLLER_MOUSE_STATE state;
-	state.mouse_X = action->move_pos_x;
-	state.mouse_Y = action->move_pos_y;
-	state.mouse_speed_X = action->move_speed_x;
-	state.mouse_speed_Y = action->move_speed_y;
-	return state;
-}
 
 INPUT_CONTROLLER_ACTION_STATE mouse_keyboard_game_controller_c::get_action_state(ACTION_ID action) {
 	INPUT_CONTROLLER_ACTION_STATE state;
@@ -142,19 +150,18 @@ INPUT_CONTROLLER_ACTION_STATE mouse_keyboard_game_controller_c::get_action_state
 	return state;
 }
 
-INPUT_CONTROLLER_MOUSE_STATE mouse_keyboard_game_controller_c::get_mouse_state() {
-	INPUT_CONTROLLER_MOUSE_STATE state;
-	return state;
+void mouse_keyboard_game_controller_c::associate_with_mouse(ACTION_ID action, INPUT_CONTROLLER_MOUSE_MOVE_MASK mouse_mask, bool activate_on_move) {
+	if (is_action_id_available(action)) {
+		actions_desc[action]->mouse_mask = mouse_mask;
+		actions_desc[action]->activate_on_move = activate_on_move;
+		mouse_actions.push_back(actions_desc[action]);
+	}
 }
 
-mouse_keyboard_game_controller_c::mouse_keyboard_game_controller_c()
+mouse_keyboard_game_controller_c::~mouse_keyboard_game_controller_c()
 {
-	for (auto& action : actions_map) {
-		for (int i = 0; i < CTRL_SHIFT_STATE_NUM; i++) {
-			action->vk_map[i].low_value = 0;
-			action->vk_map[i].high_value = 0;
-		}
-		action->state = false;
+	for (const auto& action : actions_map) {
+		delete action;
 	}
 }
 
@@ -189,24 +196,15 @@ void mouse_keyboard_game_controller_c::update_actions(MOUSE_KEYBOARD_VIRTUAL_KEY
 			case UPDATE_ACTION_SET:   action->state = true; action->press_count++; break;
 			case UPDATE_ACTION_RESET: action->state = false; break;
 			case UPDATE_ACTION_DBLCLK:action->dbl_click = true; break;
-			case UPDATE_ACTION_MOVE:
-				action->move_pos_x = last_mouse_x;
-				action->move_pos_y = last_mouse_y;
-				action->move_speed_x = mouse_move_x;
-				action->move_speed_y = mouse_move_y;
-				break;
 			}
+			
 			if (call_action) {
 				if (action->state)
 					update_action_desc_on_set(action);
 				else
 					update_action_desc_on_reset(action);
 
-				if (proc == UPDATE_ACTION_MOVE) {
-					action->move_event(action->action_id, move_action_state_init(action));
-				} else	{
-					action->event(action->action_id, action_state_init(action));
-				}
+				action->event(action->action_id, action_state_init(action));
 			}
 		}
 	}
@@ -237,21 +235,5 @@ void mouse_keyboard_game_controller_c::unsubscribe(action_event_handler_c* handl
 	auto* desc = actions_desc[action];
 	if (desc) {
 		desc->event -= handler;
-	}
-}
-
-void mouse_keyboard_game_controller_c::subscribe(action_move_event_handler_c* handler, ACTION_ID action)
-{
-	auto* desc = actions_desc[action];
-	if (desc) {
-		desc->move_event += handler;
-	}
-}
-
-void mouse_keyboard_game_controller_c::unsubscribe(action_move_event_handler_c* handler, ACTION_ID action)
-{
-	auto* desc = actions_desc[action];
-	if (desc) {
-		desc->move_event -= handler;
 	}
 }
