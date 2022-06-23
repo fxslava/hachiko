@@ -61,7 +61,7 @@ private:
 	UINT swap_chain_frame_num = 2;
 	UINT current_render_target_idx = 0;
 
-	XMINT2 screen_resolution;
+	XMINT2 screen_resolution = XMINT2(0,0);
 
 	// Synchronization objects.
 	UINT   frame_idx = 0;

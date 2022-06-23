@@ -5,7 +5,7 @@
 using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
-class shader_pass_c
+class terrain_render_pass_c
 {
 public:
 	HRESULT create_pso(renderer_c* renderer);

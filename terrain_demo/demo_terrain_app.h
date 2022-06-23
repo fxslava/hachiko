@@ -15,7 +15,7 @@ public:
 	demo_terrain_app_c(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int cmd_show);
 
 	HRESULT create_pipline(D3D_FEATURE_LEVEL feature_level);
-	HRESULT update();
+	HRESULT update(ID3D12GraphicsCommandList* command_list);
 	HRESULT on_render();
 
 	void on_destroy();

@@ -13,7 +13,14 @@ public:
     	return instance;
     }
 
+    struct {
+        XMFLOAT4X4A view_proj_mat = XMFLOAT4X4A(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+        XMFLOAT4X4A world_mat = XMFLOAT4X4A(0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f);
+    } common_engine_cb;
+    CONSTANT_BUFFER_HANDLE common_engine_cb_handle = CONSTANT_BUFFER_INVALID_HANDLE;
+
     HRESULT init_sub_systems(const UINT width, const UINT height, const D3D_FEATURE_LEVEL feature_level, HWND wnd_handle);
+    HRESULT update(ID3D12GraphicsCommandList* command_list);
     void shut_down();
 
     renderer_c*                 get_renderer()                 { return &d3d_renderer; }

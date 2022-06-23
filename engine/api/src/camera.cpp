@@ -37,13 +37,13 @@ render_camera_c::render_camera_c(FXMVECTOR position_, FXMVECTOR look_, FXMVECTOR
 
 void render_camera_c::apply_camera_view() const {
 	auto& engine = engine_c::get_instance();
-	auto* cb_mng = engine.get_constant_buffers_manager();
+	auto& view_proj_mat_cb = engine.common_engine_cb.view_proj_mat;
 
 	FXMMATRIX view_mat = get_view();
 	FXMMATRIX proj_mat = get_proj();
 	FXMMATRIX view_proj_mat = XMMatrixMultiply(view_mat, proj_mat);
 
-	XMStoreFloat4x4A(&cb_mng->engine_common.main_camera, view_proj_mat);
+	XMStoreFloat4x4A(&view_proj_mat_cb, view_proj_mat);
 }
 
 

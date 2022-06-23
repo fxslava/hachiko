@@ -1,87 +1,122 @@
 #include "constant_buffers_manager.h"
 #include "renderer.h"
 
-HRESULT constant_buffers_manager_c::allocate_resources(renderer_i* renderer)
+
+HRESULT constant_buffer_c::allocate(const std::wstring name, size_t size)
+{
+	HRESULT hres;
+
+    buffer_size = ALIGN_CB(size);
+
+	const std::wstring upload_buffer_name = name + std::wstring(L"_UPLOAD_CB");
+	const std::wstring buffer_name = name + std::wstring(L"_CB");
+
+	D3D12MA::ALLOCATION_DESC constant_buffer_desc = {};
+	constant_buffer_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+
+	ComPtr<ID3D12Resource> constant_buffer_resource_upload;
+	CK(gpu_allocator->CreateResource(
+		&constant_buffer_desc,
+		&CD3DX12_RESOURCE_DESC::Buffer(buffer_size),
+		D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, &gpu_upload_buffer, IID_PPV_ARGS(&constant_buffer_resource_upload)));
+	constant_buffer_resource_upload->SetName(upload_buffer_name.c_str());
+
+	constant_buffer_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+	ComPtr<ID3D12Resource> constant_buffer_resource;
+	CK(gpu_allocator->CreateResource(
+		&constant_buffer_desc,
+		&CD3DX12_RESOURCE_DESC::Buffer(buffer_size),
+		D3D12_RESOURCE_STATE_COPY_DEST, nullptr, &gpu_buffer, IID_PPV_ARGS(&constant_buffer_resource)));
+	constant_buffer_resource->SetName(buffer_name.c_str());
+
+	return S_OK;
+}
+
+HRESULT constant_buffer_c::update_constant_buffer(BYTE* buffer, size_t size, size_t offset) const
+{
+	const ComPtr<ID3D12Resource> constant_buffer_resource(gpu_upload_buffer->GetResource());
+	const CD3DX12_RANGE readRange(0, 0);
+
+	BYTE* dst = nullptr;
+	if (SUCCEEDED(constant_buffer_resource->Map(0, &readRange, reinterpret_cast<void**>(&dst)))) {
+		memcpy(dst + offset, buffer, size);
+		constant_buffer_resource->Unmap(0, nullptr);
+        return S_OK;
+	}
+
+	return E_FAIL;
+}
+
+
+void constant_buffer_c::copy_buffer_on_gpu(ID3D12GraphicsCommandList* command_list)
+{
+    command_list->CopyResource(gpu_buffer->GetResource(), gpu_upload_buffer->GetResource());
+    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gpu_buffer->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
+}
+
+
+HRESULT constant_buffers_manager_c::create_constant_buffer(CONSTANT_BUFFER_HANDLE& cb_handle, std::wstring name, size_t size)
 {
     HRESULT hres;
-    ComPtr<D3D12MA::Allocator> gpu_allocator(renderer->get_gpu_allocator());
-    renderer_c* d3d_renderer = reinterpret_cast<renderer_c*>(renderer);
-    d3d_device = d3d_renderer->get_d3d_device();
 
-    D3D12MA::ALLOCATION_DESC constant_buffer_desc = {};
-    constant_buffer_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+    constant_buffers_array.emplace_back(d3d_renderer);
+    auto& constant_buffer = constant_buffers_array.back();
 
-    ComPtr<ID3D12Resource> constant_buffer_resource_upload;
-    CK(gpu_allocator->CreateResource(
-        &constant_buffer_desc,
-        &CD3DX12_RESOURCE_DESC::Buffer(TOTAL_CB_SIZE),
-        D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, &upload_engine_common_cb, IID_PPV_ARGS(&constant_buffer_resource_upload)));
+    CK(constant_buffer.allocate(name, size));
 
-    constant_buffer_resource_upload->SetName(L"ENGINE_COMMON_CB_UPLOAD");
+    cb_handle = current_constant_buffer_handle_idx++;
 
-    constant_buffer_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-    ComPtr<ID3D12Resource> constant_buffer_resource;
-    CK(gpu_allocator->CreateResource(
-        &constant_buffer_desc,
-        &CD3DX12_RESOURCE_DESC::Buffer(TOTAL_CB_SIZE),
-        D3D12_RESOURCE_STATE_COPY_DEST, nullptr, &engine_common_cb, IID_PPV_ARGS(&constant_buffer_resource)));
+    return S_OK;
+}
 
-    constant_buffer_resource->SetName(L"ENGINE_COMMON_CB");
 
-    // Describe and create a render target view (DSV) descriptor heap.
+HRESULT constant_buffers_manager_c::update_constant_buffer(CONSTANT_BUFFER_HANDLE& cb_handle, BYTE* buffer, size_t size, size_t offset)
+{
+    auto& constant_buffer = constant_buffers_array[cb_handle];
+    return constant_buffer.update_constant_buffer(buffer, size, offset);
+}
+
+
+HRESULT constant_buffers_manager_c::get_cbv_heap(std::vector<CONSTANT_BUFFER_HANDLE>& cb_handle_array, ID3D12DescriptorHeap*& cbv_heap)
+{
+    const CBV_HEAP_ID heap_id(cb_handle_array);
+    if (!is_cbv_heap_available_in_cache(heap_id)) {
+        return create_cbv_heap(heap_id, cb_handle_array, cbv_heap);
+    }
+    cbv_heap = cbv_heap_cache[heap_id.ID_ARRAY.raw];
+    return S_OK;
+}
+
+HRESULT constant_buffers_manager_c::create_cbv_heap(const CBV_HEAP_ID& heap_id, std::vector<CONSTANT_BUFFER_HANDLE>& cb_handle_array, ID3D12DescriptorHeap*& cbv_heap)
+{
+    HRESULT hres;
+
     D3D12_DESCRIPTOR_HEAP_DESC cbv_heap_desc = {};
-    cbv_heap_desc.NumDescriptors = 2;
+    cbv_heap_desc.NumDescriptors = static_cast<UINT>(cb_handle_array.size());
     cbv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     cbv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     CK(d3d_device->CreateDescriptorHeap(&cbv_heap_desc, IID_PPV_ARGS(&cbv_heap)));
 
-    // Describe and create a constant buffer view.
     CD3DX12_CPU_DESCRIPTOR_HANDLE cbv_heap_handle(cbv_heap->GetCPUDescriptorHandleForHeapStart());
-    D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-    cbvDesc.BufferLocation = constant_buffer_resource->GetGPUVirtualAddress();
-    cbvDesc.SizeInBytes = ENGINE_COMMON_CB_SIZE;
-    d3d_device->CreateConstantBufferView(&cbvDesc, cbv_heap_handle);
 
-    cbv_heap_handle.Offset(d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+    for (const auto& handle : cb_handle_array) {
+        auto& constant_buffer = constant_buffers_array[handle];
 
-    cbvDesc.BufferLocation = constant_buffer_resource->GetGPUVirtualAddress() + ALIGN_CB(ENGINE_COMMON_CB_SIZE);
-    cbvDesc.SizeInBytes = OBJECT_COMMON_CB_SIZE;
-    d3d_device->CreateConstantBufferView(&cbvDesc, cbv_heap_handle);
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
+        cbvDesc.BufferLocation = constant_buffer.GetGPUVirtualAddress();
+        cbvDesc.SizeInBytes    = static_cast<UINT>(constant_buffer.get_size());
+        d3d_device->CreateConstantBufferView(&cbvDesc, cbv_heap_handle);
 
+        cbv_heap_handle.Offset(d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+    }
     return S_OK;
 }
 
 
-void constant_buffers_manager_c::destroy_resources()
+void constant_buffers_manager_c::copy_buffers_on_gpu(ID3D12GraphicsCommandList* command_list)
 {
-    if (upload_engine_common_cb) {
-        upload_engine_common_cb->Release();
-    }
-    if (engine_common_cb) {
-        engine_common_cb->Release();
-    }
-}
-
-HRESULT constant_buffers_manager_c::begin(ENGINE_COMMON_CB*& common_cb, OBJECT_COMMON_CB*& object_cb)
-{
-    HRESULT hres;
-    BYTE* engine_common_cb_ptr = nullptr;
-	
-    const ComPtr<ID3D12Resource> constant_buffer_resource(upload_engine_common_cb->GetResource());
-    const CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
-    CK(constant_buffer_resource->Map(0, &readRange, reinterpret_cast<void**>(&engine_common_cb_ptr)));
-
-    common_cb = reinterpret_cast<ENGINE_COMMON_CB*>(engine_common_cb_ptr);
-    object_cb = reinterpret_cast<OBJECT_COMMON_CB*>(engine_common_cb_ptr + ENGINE_COMMON_CB_SIZE);
-
-    return S_OK;
-}
-
-void constant_buffers_manager_c::end(ID3D12GraphicsCommandList* command_list)
-{
-    const ComPtr<ID3D12Resource> constant_buffer_resource(upload_engine_common_cb->GetResource());
-    constant_buffer_resource->Unmap(0, nullptr);
-
-    command_list->CopyResource(engine_common_cb->GetResource(), upload_engine_common_cb->GetResource());
-    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(engine_common_cb->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
+	for (auto& constant_buffer : constant_buffers_array)
+	{
+        constant_buffer.copy_buffer_on_gpu(command_list);
+	}
 }

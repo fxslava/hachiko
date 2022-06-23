@@ -6,13 +6,21 @@ set(CMAKE_CXX_STANDARD 17)
 set(HLSL_SHADER_FILES 
 		./core/shaders/sample_shader.psh
 		./core/shaders/sample_shader.vsh
+		./core/shaders/render_terrain_shader.psh
+		./core/shaders/render_terrain_shader.vsh
+		./core/shaders/render_terrain_shader.hsh
+		./core/shaders/render_terrain_shader.dsh
 )
 
 add_custom_target(shaders)
 
 set_source_files_properties(core/shaders/sample_shader.vsh PROPERTIES ShaderType "vs")
 set_source_files_properties(core/shaders/sample_shader.psh PROPERTIES ShaderType "ps")
-set_source_files_properties(${HLSL_SHADER_FILES} PROPERTIES ShaderModel "5_0")
+set_source_files_properties(core/shaders/render_terrain_shader.vsh PROPERTIES ShaderType "vs")
+set_source_files_properties(core/shaders/render_terrain_shader.psh PROPERTIES ShaderType "ps")
+set_source_files_properties(core/shaders/render_terrain_shader.hsh PROPERTIES ShaderType "hs")
+set_source_files_properties(core/shaders/render_terrain_shader.dsh PROPERTIES ShaderType "ds")
+set_source_files_properties(${HLSL_SHADER_FILES} PROPERTIES ShaderModel "6_0")
 
 set(SHADERS_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/shaders)
 file(MAKE_DIRECTORY ${SHADERS_OUTPUT_DIR})
@@ -65,6 +73,7 @@ file(
         ./core/renderer.cpp
 		./core/terrain.cpp
 		./core/shader_pass.cpp
+		./core/terrain_render_pass.cpp
 		./core/common/utils.cpp
 		./core/thirdparty/d3d12memalloc/D3D12MemAlloc.cpp
 		./api/src/camera.cpp

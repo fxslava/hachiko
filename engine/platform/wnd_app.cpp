@@ -98,7 +98,8 @@ int wnd_app_c::loop(wnd_app_c* ctx, render_callback_t render_cb) {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
 
-            if (msg.message == WM_KEYDOWN || msg.message == WM_KEYUP || msg.message == WM_CHAR) {
+            // almost full fill window message queue problem fix
+            if (msg.message == WM_KEYDOWN || msg.message == WM_KEYUP || msg.message == WM_CHAR || msg.message == WM_UNICHAR) {
                 perform_idle = false;
             }
         }

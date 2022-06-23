@@ -60,10 +60,17 @@ HRESULT demo_terrain_app_c::create_pipline(D3D_FEATURE_LEVEL feature_level) {
 }
 
 
-HRESULT demo_terrain_app_c::update() {
+HRESULT demo_terrain_app_c::update(ID3D12GraphicsCommandList* command_list) {
+    HRESULT hres;
+    auto& engine = engine_c::get_instance();
+
     update_timestamp();
     view_camera.update(elapsed_time);
-    return terrain.update();
+    view_camera.apply_camera_view();
+    CK(terrain.update());
+    CK(engine.update(command_list));
+
+    return S_OK;
 }
 
 
@@ -73,21 +80,7 @@ HRESULT demo_terrain_app_c::on_render() {
     HRESULT hres;
     CK(d3d_renderer->begin_render(&command_list));
 
-    ENGINE_COMMON_CB* p_engine_common_cb = nullptr;
-    OBJECT_COMMON_CB* p_object_common_cb = nullptr;
-
-    if (SUCCEEDED(constant_buffers_manager->begin(p_engine_common_cb, p_object_common_cb))) {
-        view_camera.apply_camera_view();
-        OBJECT_COMMON_CB object_cb;
-        XMStoreFloat4x4A(&object_cb.world, XMMatrixIdentity());
-
-        memcpy(p_object_common_cb, &object_cb, sizeof(OBJECT_COMMON_CB));
-        memcpy(p_engine_common_cb, &constant_buffers_manager->engine_common, sizeof(ENGINE_COMMON_CB));
-    	
-        constant_buffers_manager->end(command_list);
-    }
-
-    update();
+    update(command_list);
 
     float clear_color[] = { 0.4f, 0.4f, 0.7f, 1.0f };
     CK(d3d_renderer->clear_render_target(clear_color));

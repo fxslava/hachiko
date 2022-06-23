@@ -1,0 +1,21 @@
+#include "render_terrain_shader_in_out.fx"
+
+[domain("quad")]
+
+PSInput main(ConstantOutputType input, float2 uvwCoord : SV_DomainLocation, const OutputPatch<DSInput, 4> patch)
+{
+    PSInput output;
+
+    float3 pos0 = lerp(patch[0].position, patch[1].position, uvwCoord.x);
+    float3 pos1 = lerp(patch[2].position, patch[3].position, uvwCoord.x);
+    float3 vertexPos = lerp(pos0, pos1, uvwCoord.y);
+    
+    float2 uv0 = lerp(patch[0].uv, patch[1].uv, uvwCoord.x);
+    float2 uv1 = lerp(patch[2].uv, patch[3].uv, uvwCoord.x);
+    float2 vertexUVs = lerp(uv0, uv1, uvwCoord.y);
+
+    output.position = mul(float4(vertexPos, 1.0f), view_proj_mat);
+    output.uv = vertexUVs;
+
+    return output;
+}
