@@ -43,7 +43,7 @@ void render_camera_c::apply_camera_view() const {
 	FXMMATRIX proj_mat = get_proj();
 	FXMMATRIX view_proj_mat = XMMatrixMultiply(view_mat, proj_mat);
 
-	XMStoreFloat4x4A(&cb_mng->engine_common.main_camera.view_proj_mat, view_proj_mat);
+	XMStoreFloat4x4A(&cb_mng->engine_common.main_camera, view_proj_mat);
 }
 
 

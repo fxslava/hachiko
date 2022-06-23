@@ -44,7 +44,6 @@ protected:
 
 	ComPtr<ID3D12Device> d3d_device;
 	ComPtr<ID3D12DescriptorHeap> srv_heap;
-	ComPtr<ID3D12DescriptorHeap> cbv_heap;
 
 	bool srv_heap_not_empty = false;
 };
