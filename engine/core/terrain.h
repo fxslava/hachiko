@@ -30,14 +30,16 @@ protected:
 	};
 
 	struct {
-		XMINT2 grid_dim = XMINT2(1000, 1000);
+		XMFLOAT4X4 world = XMFLOAT4X4(1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f);
+		/*XMINT2 grid_dim = XMINT2(1000, 1000);
 		XMFLOAT2 patch_size = XMFLOAT2(1.0f, 1.0f);
 		XMFLOAT3 terrain_origin = XMFLOAT3(0.f, 0.f, 0.f);
-		float terrain_max_height = 100.0f;
+		float terrain_max_height = 100.0f;*/
 	} common_terrain_cb;
 	CONSTANT_BUFFER_HANDLE common_terrain_cb_handle = CONSTANT_BUFFER_INVALID_HANDLE;
 
 	terrain_render_pass_c terrain_render_pass;
+	shader_pass_c sample_shader_pass;
 
 	renderer_c* d3d_renderer = nullptr;
 	resource_manager_c* resource_manager = nullptr;
