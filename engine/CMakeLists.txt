@@ -20,7 +20,7 @@ set_source_files_properties(core/shaders/render_terrain_shader.vsh PROPERTIES Sh
 set_source_files_properties(core/shaders/render_terrain_shader.psh PROPERTIES ShaderType "ps")
 set_source_files_properties(core/shaders/render_terrain_shader.hsh PROPERTIES ShaderType "hs")
 set_source_files_properties(core/shaders/render_terrain_shader.dsh PROPERTIES ShaderType "ds")
-set_source_files_properties(${HLSL_SHADER_FILES} PROPERTIES ShaderModel "6_0")
+set_source_files_properties(${HLSL_SHADER_FILES} PROPERTIES ShaderModel "5_0")
 
 set(SHADERS_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/shaders)
 file(MAKE_DIRECTORY ${SHADERS_OUTPUT_DIR})

@@ -16,7 +16,7 @@ HRESULT terrain_base_c::allocate_resources()
     d3d_device = d3d_renderer->get_d3d_device();
 
     HRESULT hres = S_OK;
-    CK(sample_shader_pass.create_pso(d3d_renderer));
+    CK(terrain_render_pass.create_pso(d3d_renderer));
 
     // Describe and create a shader resource view (SRV) heap for the texture.
     D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
@@ -33,7 +33,7 @@ HRESULT terrain_base_c::allocate_resources()
 void terrain_base_c::render(ID3D12GraphicsCommandList* command_list)
 {
     auto& engine = engine_c::get_instance();
-    sample_shader_pass.setup(command_list);
+    terrain_render_pass.setup(command_list);
 
     std::vector cb_handlers = { engine.common_engine_cb_handle, common_terrain_cb_handle };
     ID3D12DescriptorHeap* cbv_heap;
@@ -49,11 +49,10 @@ void terrain_base_c::render(ID3D12GraphicsCommandList* command_list)
         command_list->SetGraphicsRootDescriptorTable(1, srv_heap->GetGPUDescriptorHandleForHeapStart());
     }
 
-    command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
-    command_list->DrawInstanced(4, 1, 0, 0);
+    command_list->DrawInstanced(4, 1024, 0, 0);
 }
 
-HRESULT terrain_base_c::update()
+HRESULT terrain_base_c::update(ID3D12GraphicsCommandList* command_list)
 {
     const std::wstring resource_name = L"sample_terrain/LOD1/image_x0_y1.bmp";
 
@@ -71,6 +70,9 @@ HRESULT terrain_base_c::update()
 
         srv_heap_not_empty = true;
     }
+
+    HRESULT hres;
+    CK(constant_buffers_manager->update_constant_buffer(common_terrain_cb_handle, reinterpret_cast<BYTE*>(&common_terrain_cb), sizeof(common_terrain_cb)));
 
     return S_OK;
 }

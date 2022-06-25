@@ -19,8 +19,8 @@ HRESULT shader_pass_c::create_root_signature(ID3D12Device* device)
     ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0, 0, D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC);
 
     CD3DX12_ROOT_PARAMETER1 rootParameters[2];
-    rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_VERTEX);
-    rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
+    rootParameters[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
+    rootParameters[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_ALL);
 
     D3D12_STATIC_SAMPLER_DESC sampler = {};
     sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -40,8 +40,6 @@ HRESULT shader_pass_c::create_root_signature(ID3D12Device* device)
     // Allow input layout and deny uneccessary access to certain pipeline stages.
     D3D12_ROOT_SIGNATURE_FLAGS rootSignatureFlags =
         D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT |
-        D3D12_ROOT_SIGNATURE_FLAG_DENY_HULL_SHADER_ROOT_ACCESS |
-        D3D12_ROOT_SIGNATURE_FLAG_DENY_DOMAIN_SHADER_ROOT_ACCESS |
         D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 
     CD3DX12_VERSIONED_ROOT_SIGNATURE_DESC rootSignatureDesc;
@@ -64,21 +62,21 @@ HRESULT shader_pass_c::create_pso(renderer_c* renderer)
     CK(create_root_signature(d3d_device.Get()));
 
     std::vector<uint8_t> vertex_shader_bytecode;
-    read_binary_file(vertex_shader_bytecode, "shaders/sample_shader_vs.cso");
+    read_binary_file(vertex_shader_bytecode, "shaders/render_terrain_shader_vs.cso");
+    std::vector<uint8_t> hull_shader_bytecode;
+    read_binary_file(hull_shader_bytecode, "shaders/render_terrain_shader_hs.cso");
+    std::vector<uint8_t> domain_shader_bytecode;
+    read_binary_file(domain_shader_bytecode, "shaders/render_terrain_shader_ds.cso");
     std::vector<uint8_t> pixel_shader_bytecode;
-    read_binary_file(pixel_shader_bytecode, "shaders/sample_shader_ps.cso");
-
-    D3D12_INPUT_ELEMENT_DESC inputElementDescs[] =
-    {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-    };
+    read_binary_file(pixel_shader_bytecode, "shaders/render_terrain_shader_ps.cso");
 
     // Describe and create the graphics pipeline state object (PSO).
     D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc = {};
-    pso_desc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+    pso_desc.InputLayout = { nullptr, 0 };
     pso_desc.pRootSignature = root_signature.Get();
     pso_desc.VS = CD3DX12_SHADER_BYTECODE(&vertex_shader_bytecode[0], vertex_shader_bytecode.size());
+    pso_desc.HS = CD3DX12_SHADER_BYTECODE(&hull_shader_bytecode[0], hull_shader_bytecode.size());
+    pso_desc.DS = CD3DX12_SHADER_BYTECODE(&domain_shader_bytecode[0], domain_shader_bytecode.size());
     pso_desc.PS = CD3DX12_SHADER_BYTECODE(&pixel_shader_bytecode[0], pixel_shader_bytecode.size());
     pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
     pso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
@@ -87,7 +85,7 @@ HRESULT shader_pass_c::create_pso(renderer_c* renderer)
     pso_desc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
     pso_desc.DepthStencilState.StencilEnable = FALSE;
     pso_desc.SampleMask = UINT_MAX;
-    pso_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pso_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
     pso_desc.NumRenderTargets = 1;
     pso_desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     pso_desc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;

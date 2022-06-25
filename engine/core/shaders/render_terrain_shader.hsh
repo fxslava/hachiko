@@ -4,26 +4,23 @@ ConstantOutputType ColorPatchConstantFunction(InputPatch<HSInput, 4> inputPatch,
 {
     ConstantOutputType output;
 
-    const int tessellationAmount = 4;
-
     // Set the tessellation factors for the three edges of the triangle.
-    output.edges[0] = tessellationAmount;
-    output.edges[1] = tessellationAmount;
-    output.edges[2] = tessellationAmount;
+    output.edges[0] = 4;
+    output.edges[1] = 4;
+    output.edges[2] = 4;
 
     // Set the tessellation factor for tessallating inside the triangle.
-    output.inside[0] = tessellationAmount;
-    output.inside[1] = tessellationAmount;
+    output.inside[0] = 4;
+    output.inside[1] = 4;
 
     return output;
 }
 
 [domain("quad")]
-[partitioning("integer")]
-[outputtopology("triangle_cw")]
+[partitioning("fractional_even")]
+[outputtopology("triangle_ccw")]
 [outputcontrolpoints(4)]
 [patchconstantfunc("ColorPatchConstantFunction")]
-
 DSInput main(InputPatch<HSInput, 4> patch, uint pointId : SV_OutputControlPointID, uint patchId : SV_PrimitiveID)
 {
     DSInput output;

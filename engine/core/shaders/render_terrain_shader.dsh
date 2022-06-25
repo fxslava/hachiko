@@ -1,7 +1,6 @@
 #include "render_terrain_shader_in_out.fx"
 
 [domain("quad")]
-
 PSInput main(ConstantOutputType input, float2 uvwCoord : SV_DomainLocation, const OutputPatch<DSInput, 4> patch)
 {
     PSInput output;

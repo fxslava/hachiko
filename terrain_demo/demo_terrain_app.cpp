@@ -67,7 +67,7 @@ HRESULT demo_terrain_app_c::update(ID3D12GraphicsCommandList* command_list) {
     update_timestamp();
     view_camera.update(elapsed_time);
     view_camera.apply_camera_view();
-    CK(terrain.update());
+    CK(terrain.update(command_list));
     CK(engine.update(command_list));
 
     return S_OK;
