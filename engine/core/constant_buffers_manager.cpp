@@ -51,7 +51,7 @@ HRESULT constant_buffer_c::update_constant_buffer(BYTE* buffer, size_t size, siz
 void constant_buffer_c::copy_buffer_on_gpu(ID3D12GraphicsCommandList* command_list)
 {
     command_list->CopyResource(gpu_buffer->GetResource(), gpu_upload_buffer->GetResource());
-    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gpu_buffer->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_GENERIC_READ));
+    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gpu_buffer->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 }
 
 

@@ -1,6 +1,6 @@
 #include "render_terrain_shader_in_out.fx"
 
-ConstantOutputType ColorPatchConstantFunction(InputPatch<HSInput, 4> inputPatch, uint patchId : SV_PrimitiveID)
+ConstantOutputType ConstantHS(InputPatch<HSInput, 4> inputPatch, uint patchId : SV_PrimitiveID)
 {
     ConstantOutputType output;
 
@@ -8,6 +8,7 @@ ConstantOutputType ColorPatchConstantFunction(InputPatch<HSInput, 4> inputPatch,
     output.edges[0] = 4;
     output.edges[1] = 4;
     output.edges[2] = 4;
+    output.edges[3] = 4;
 
     // Set the tessellation factor for tessallating inside the triangle.
     output.inside[0] = 4;
@@ -17,16 +18,17 @@ ConstantOutputType ColorPatchConstantFunction(InputPatch<HSInput, 4> inputPatch,
 }
 
 [domain("quad")]
-[partitioning("fractional_even")]
+[partitioning("integer")]
 [outputtopology("triangle_ccw")]
 [outputcontrolpoints(4)]
-[patchconstantfunc("ColorPatchConstantFunction")]
-DSInput main(InputPatch<HSInput, 4> patch, uint pointId : SV_OutputControlPointID, uint patchId : SV_PrimitiveID)
+[patchconstantfunc("ConstantHS")]
+[maxtessfactor(64.0f)]
+DSInput main(InputPatch<HSInput, 4> patch, uint i : SV_OutputControlPointID, uint patchId : SV_PrimitiveID)
 {
     DSInput output;
 
-    output.position = patch[pointId].position;
-    output.uv = patch[pointId].uv;
+    output.position = patch[i].position;
+    output.uv = patch[i].uv;
 
     return output;
 }

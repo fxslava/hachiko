@@ -41,15 +41,17 @@ void terrain_base_c::render(ID3D12GraphicsCommandList* command_list)
 
     ID3D12DescriptorHeap* ppHeaps[] = { cbv_heap };
     command_list->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-    command_list->SetGraphicsRootDescriptorTable(0, cbv_heap->GetGPUDescriptorHandleForHeapStart());
+    command_list->SetGraphicsRootDescriptorTable(0, CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_heap->GetGPUDescriptorHandleForHeapStart(), 1, d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+    command_list->SetGraphicsRootDescriptorTable(1, CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_heap->GetGPUDescriptorHandleForHeapStart(), 0, d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
 
     if (srv_heap_not_empty) {
         ID3D12DescriptorHeap* ppHeaps[] = { srv_heap.Get() };
         command_list->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-        command_list->SetGraphicsRootDescriptorTable(1, srv_heap->GetGPUDescriptorHandleForHeapStart());
+        command_list->SetGraphicsRootDescriptorTable(2, srv_heap->GetGPUDescriptorHandleForHeapStart());
     }
 
-    command_list->DrawInstanced(4, 1024, 0, 0);
+    command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
+    command_list->DrawInstanced(4, 1, 0, 0);
 }
 
 HRESULT terrain_base_c::update(ID3D12GraphicsCommandList* command_list)

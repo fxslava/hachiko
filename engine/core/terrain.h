@@ -17,6 +17,7 @@ using Microsoft::WRL::ComPtr;
 class terrain_base_c : public terrain_i
 {
 public:
+
 	HRESULT allocate_resources();
 	void render(ID3D12GraphicsCommandList* command_list);
 
@@ -26,14 +27,11 @@ protected:
 	struct Vertex
 	{
 		XMFLOAT3 position;
-		XMFLOAT4 color;
+		XMFLOAT2 uv;
 	};
 
 	struct {
 		XMINT2 grid_dim = XMINT2(32, 32);
-		XMFLOAT2 patch_size = XMFLOAT2(1.0f, 1.0f);
-		XMFLOAT3 terrain_origin = XMFLOAT3(0.f, 0.f, 0.f);
-		float terrain_max_height = 100.0f;
 	} common_terrain_cb;
 
 	CONSTANT_BUFFER_HANDLE common_terrain_cb_handle = CONSTANT_BUFFER_INVALID_HANDLE;

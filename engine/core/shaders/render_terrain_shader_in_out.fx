@@ -9,22 +9,19 @@ cbuffer SceneConstantBuffer : register(b0)
 
 cbuffer TerrainConstantBuffer : register(b1)
 {
-    int2   grid_dim;
-    float2 patch_size;
-    float3 terrain_origin;
-    float  terrain_max_height;
-};
-
-struct ConstantOutputType
-{
-    float edges[4] : SV_TessFactor;
-    float inside[2] : SV_InsideTessFactor;
+    int4 grid_dim;
 };
 
 struct HSInput
 {
     float3 position : POSITION;
     float2 uv : TEXCOORD;
+};
+
+struct ConstantOutputType
+{
+    float edges[4] : SV_TessFactor;
+    float inside[2] : SV_InsideTessFactor;
 };
 
 struct DSInput

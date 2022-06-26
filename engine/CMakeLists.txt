@@ -20,7 +20,7 @@ set_source_files_properties(core/shaders/render_terrain_shader.vsh PROPERTIES Sh
 set_source_files_properties(core/shaders/render_terrain_shader.psh PROPERTIES ShaderType "ps")
 set_source_files_properties(core/shaders/render_terrain_shader.hsh PROPERTIES ShaderType "hs")
 set_source_files_properties(core/shaders/render_terrain_shader.dsh PROPERTIES ShaderType "ds")
-set_source_files_properties(${HLSL_SHADER_FILES} PROPERTIES ShaderModel "5_0")
+set_source_files_properties(${HLSL_SHADER_FILES} PROPERTIES ShaderModel "6_0")
 
 set(SHADERS_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/shaders)
 file(MAKE_DIRECTORY ${SHADERS_OUTPUT_DIR})
@@ -31,7 +31,7 @@ foreach(FILE ${HLSL_SHADER_FILES})
 	get_source_file_property(shadermodel ${FILE} ShaderModel)
 
 	add_custom_command(TARGET shaders
-	                   COMMAND dxc.exe /nologo /Emain /T${shadertype}_${shadermodel} /Od /O1 /Zi /Fo ${SHADERS_OUTPUT_DIR}/${FILE_WE}_${shadertype}.cso /Fd ${SHADERS_OUTPUT_DIR}/${FILE_WE}_${shadertype}.pdb ${FILE}
+	                   COMMAND dxc.exe /Emain /T${shadertype}_${shadermodel} /Ges /Od /O1 /Zi /Fo ${SHADERS_OUTPUT_DIR}/${FILE_WE}_${shadertype}.cso /Fd ${SHADERS_OUTPUT_DIR}/${FILE_WE}_${shadertype}.pdb ${FILE}
 	                   MAIN_DEPENDENCY ${FILE}
 	                   COMMENT "HLSL ${FILE}"
 	                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
