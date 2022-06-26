@@ -9,7 +9,9 @@ cbuffer SceneConstantBuffer : register(b0)
 
 cbuffer TerrainConstantBuffer : register(b1)
 {
-    int4 grid_dim;
+    int4   grid_dim;
+    float4 terrain_origin;
+    float4 sizes;
 };
 
 struct HSInput

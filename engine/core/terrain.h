@@ -31,7 +31,9 @@ protected:
 	};
 
 	struct {
-		XMINT2 grid_dim = XMINT2(32, 32);
+		XMINT4 grid_dim = XMINT4(32, 32, 0, 0);
+		XMFLOAT4 origin = XMFLOAT4(64.f, 1.f, 64.f, 0.f);
+		XMFLOAT4 sizes  = XMFLOAT4(4.f, 4.f, 0.f, 100.f);
 	} common_terrain_cb;
 
 	CONSTANT_BUFFER_HANDLE common_terrain_cb_handle = CONSTANT_BUFFER_INVALID_HANDLE;

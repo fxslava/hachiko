@@ -97,6 +97,8 @@ HRESULT constant_buffers_manager_c::create_cbv_heap(const CBV_HEAP_ID& heap_id, 
     cbv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     CK(d3d_device->CreateDescriptorHeap(&cbv_heap_desc, IID_PPV_ARGS(&cbv_heap)));
 
+    cbv_heap_cache[heap_id.ID_ARRAY.raw] = cbv_heap;
+
     CD3DX12_CPU_DESCRIPTOR_HANDLE cbv_heap_handle(cbv_heap->GetCPUDescriptorHandleForHeapStart());
 
     for (const auto& handle : cb_handle_array) {

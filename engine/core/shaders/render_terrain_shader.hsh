@@ -5,14 +5,14 @@ ConstantOutputType ConstantHS(InputPatch<HSInput, 4> inputPatch, uint patchId : 
     ConstantOutputType output;
 
     // Set the tessellation factors for the three edges of the triangle.
-    output.edges[0] = 4;
-    output.edges[1] = 4;
-    output.edges[2] = 4;
-    output.edges[3] = 4;
+    output.edges[0] = 16;
+    output.edges[1] = 16;
+    output.edges[2] = 16;
+    output.edges[3] = 16;
 
     // Set the tessellation factor for tessallating inside the triangle.
-    output.inside[0] = 4;
-    output.inside[1] = 4;
+    output.inside[0] = 16;
+    output.inside[1] = 16;
 
     return output;
 }

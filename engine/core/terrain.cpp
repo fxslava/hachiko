@@ -50,8 +50,10 @@ void terrain_base_c::render(ID3D12GraphicsCommandList* command_list)
         command_list->SetGraphicsRootDescriptorTable(2, srv_heap->GetGPUDescriptorHandleForHeapStart());
     }
 
+    const int num_instances = common_terrain_cb.grid_dim.x* common_terrain_cb.grid_dim.y;
+
     command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
-    command_list->DrawInstanced(4, 1, 0, 0);
+    command_list->DrawInstanced(4, num_instances, 0, 0);
 }
 
 HRESULT terrain_base_c::update(ID3D12GraphicsCommandList* command_list)
