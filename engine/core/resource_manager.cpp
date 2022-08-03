@@ -1,34 +1,76 @@
 ﻿#include "resource_manager.h"
 #include "utils.h"
+#include <regex>
 
+static const std::regex REGEX_LOD_KEYWORD     ("_lod([0-9]+)");
+static const std::regex REGEX_LAYER_KEYWORD   ("_layer([0-9]+)");
+static const std::regex REGEX_CUBEMAP_KEYWORD ("_cubemap([0 - 9]+)");
+static const std::regex REGEX_ALL_KEYWORD     ("((_lod)[0-9]+)*((_layer)[0-9]+)*((_cubemap)[0-9]+)*");
 
 void resource_manager_c::init()
 {
     init(fs::current_path());
 }
 
+resource_manager_c::RESOURCE_DESC_FROM_NAME resource_manager_c::get_desc_from_resource_name(std::string resource_name) {
+    RESOURCE_DESC_FROM_NAME desc{};
+
+    std::smatch matches_lod, matches_layer, matches_cubemap;
+    std::regex_search(resource_name, matches_lod, REGEX_LOD_KEYWORD);
+    std::regex_search(resource_name, matches_cubemap, REGEX_CUBEMAP_KEYWORD);
+    std::regex_search(resource_name, matches_layer, REGEX_LAYER_KEYWORD);
+
+    desc.layer_id = matches_cubemap.empty() ? desc.layer_id : stoi(matches_cubemap[1].str());
+    desc.layer_id = matches_layer.empty() ? desc.layer_id : stoi(matches_layer[1].str());
+    desc.lod_id = matches_lod.empty() ? desc.lod_id : stoi(matches_lod[1].str());
+
+    return desc;
+}
+
 void resource_manager_c::init(const fs::path& root) {
-    RESOURCE_ID resource_id = 0;
+    RESOURCE_ID current_resource_id = 0;
+    SUBRESOURCE_ID current_subresource_id = 0;
     for (const fs::directory_entry& dir_entry : fs::recursive_directory_iterator(root)) {
         if (dir_entry.is_regular_file()) {
 
             auto relative_path = fs::relative(dir_entry.path(), root);
 
-            std::wstring filename = relative_path.generic_wstring();
-            recource_registry[filename] = resource_id;
-            resource_names.push_back(filename);
+            std::string filename = relative_path.generic_string();
+            std::string resource_name = std::regex_replace(filename, REGEX_ALL_KEYWORD, "");
+            auto resource_desc_from_name = get_desc_from_resource_name(filename);
 
-            RESOURCE_ENTITY resource_entity;
-            resource_entity.state = RESOURCE_NOT_LOADED;
-            resource_entity.resource_path = dir_entry.path();
+            if (!is_available(resource_name)) {
+                GPU_RESOURCE resource{};
+                resource_registry[resource_name] = current_resource_id;
+                subresource_registry[filename] = current_subresource_id;
 
-            resources.emplace_back(resource_entity);
-            resource_id++;
+                resource.name = resource_name;
+                resource.state = RESOURCE_NOT_LOADED;
+                resource.subresources.push_back(current_subresource_id);
+                resource.max_num_layers = std::max(resource.max_num_layers, resource_desc_from_name.layer_id + 1);
+                resource.max_num_mip_maps = std::max(resource.max_num_mip_maps, resource_desc_from_name.lod_id + 1);
+
+                gpu_resources.emplace_back(resource);
+                current_resource_id++;
+            }
+            else {
+                RESOURCE_ID resource_id = resource_registry[resource_name];
+                GPU_RESOURCE& resource = gpu_resources[resource_id];
+
+                resource.subresources.push_back(current_subresource_id);
+                resource.max_num_layers = std::max(resource.max_num_layers, resource_desc_from_name.layer_id + 1);
+                resource.max_num_mip_maps = std::max(resource.max_num_mip_maps, resource_desc_from_name.lod_id + 1);
+            }
+
+            GPU_SUBRESOURCE subresource;
+            subresource.file_path = dir_entry.path();
+            subresource.layer_id = resource_desc_from_name.layer_id;
+            subresource.mip_id = resource_desc_from_name.lod_id;
+            gpu_subresources.emplace_back(subresource);
+
+            current_subresource_id++;
         }
     }
-
-    gpu_resources.resize(resource_id);
-    std::fill(gpu_resources.begin(), gpu_resources.end(), GPU_RESOURCE{nullptr, CD3DX12_RESOURCE_DESC()});
 }
 
 
@@ -49,16 +91,16 @@ void resource_manager_c::terminate() {
 }
 
 
-bool resource_manager_c::is_available(const std::wstring& resource_id)
+bool resource_manager_c::is_available(const std::string& resource_name)
 {
     std::lock_guard guard(resource_lock);
-    return recource_registry.find(resource_id) != recource_registry.end();
+    return resource_registry.find(resource_name) != resource_registry.end();
 }
 
 
 resource_manager_c::QUERY_RESOURCE_STATE resource_manager_c::query_resource(RESOURCE_ID resource_id) {
     std::lock_guard	guard(resource_lock);
-    auto &resource = resources[resource_id];
+    auto &resource = gpu_resources[resource_id];
 
     if (resource.state == RESOURCE_NOT_LOADED) 
     {
@@ -67,7 +109,6 @@ resource_manager_c::QUERY_RESOURCE_STATE resource_manager_c::query_resource(RESO
             auto& task = load_tasks_pool[task_num];
 
             task.type = TEXTURE;
-            task.resource_path = resource.resource_path;
             task.resource_id = resource_id;
 
             load_tasks.push(&task);
@@ -93,11 +134,11 @@ resource_manager_c::QUERY_RESOURCE_STATE resource_manager_c::query_resource(RESO
 }
 
 
-resource_manager_c::QUERY_RESOURCE_STATE resource_manager_c::query_resource(const std::wstring& resource_id)
+resource_manager_c::QUERY_RESOURCE_STATE resource_manager_c::query_resource(const std::string& resource_id)
 {
     if (is_available(resource_id))
     {
-        return query_resource(recource_registry[resource_id]);
+        return query_resource(resource_registry[resource_id]);
     }
     return NOT_EXIST;
 }
@@ -165,7 +206,7 @@ void resource_manager_c::resource_manager_scheduler()
 
             for (const auto& payload_element : payload) {
                 wic_image_loader.pay(payload_element.texture_payload);
-                resources[payload_element.resource_id].state = RESOURCE_AVAILABLE;
+                gpu_resources[payload_element.resource_id].state = RESOURCE_AVAILABLE;
             }
 
             payload.clear();
@@ -183,17 +224,28 @@ void resource_manager_c::resource_manager_scheduler()
                         d3d_renderer->begin_upload_command_list(&upload_command_list);
                     }
 
-                	wic_image_loader_c::payload_t payload_element;
-                    wic_image_loader.load_texture(
-                        d3d_renderer->get_d3d_device(), 
-                        upload_command_list, 
-                        load_query->resource_path, 
-                        resource_names[load_query->resource_id], 
-                        payload_element,
-                        gpu_resources[load_query->resource_id].desc,
-                        gpu_resources[load_query->resource_id].resource);
+                    auto& resource = gpu_resources[load_query->resource_id];
 
-                    payload.push_back(resource_payload_t{ payload_element, load_query->resource_id });
+                    for (SUBRESOURCE_ID subresource_id : resource.subresources) {
+                        auto& subresource = gpu_subresources[subresource_id];
+                        wic_image_c image(wic_image_loader, subresource.file_path);
+
+                        wic_image_loader_c::payload_t payload_element;
+                        wic_image_loader.upload_texture_image(
+                            d3d_renderer->get_d3d_device(),
+                            upload_command_list,
+                            image,
+                            subresource.mip_id,
+                            subresource.layer_id,
+                            resource.name,
+                            resource.max_num_layers,
+                            resource.max_num_mip_maps,
+                            resource.resource,
+                            resource.desc,
+                            payload_element);
+
+                        payload.push_back(resource_payload_t{ payload_element, load_query->resource_id });
+                    }
                     --in_progress_tasks_num;
                 }
                 else
@@ -220,7 +272,7 @@ void resource_manager_c::resource_manager_scheduler()
 
         for (const auto& payload_element : payload) {
             wic_image_loader.pay(payload_element.texture_payload);
-            resources[payload_element.resource_id].state = RESOURCE_AVAILABLE;
+            gpu_resources[payload_element.resource_id].state = RESOURCE_AVAILABLE;
         }
 
         payload.clear();

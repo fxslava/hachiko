@@ -1,5 +1,6 @@
 #include "camera.h"
 #include "engine.h"
+#include "utils.h"
 
 camera_c::camera_c(FXMVECTOR position_, FXMVECTOR look_, FXMVECTOR up_, const float fov_angleY_, const float aspect_ratio_, const float nearZ_, const float farZ_) :
 	fov_angleY(fov_angleY_), aspect_ratio(aspect_ratio_), nearZ(nearZ_), farZ(farZ_)
@@ -96,7 +97,7 @@ void movable_camera_c::camera_input_event_handler_c::call(ACTION_ID action_id, I
 		camera.azimuth += action_state.control_vel * camera.mouse_speed;
 		break;
 	case ACTION_CAMERA_ROTATE_UP:
-		camera.polar   += action_state.control_vel * camera.mouse_speed;
+		camera.polar = CLAMP(camera.polar + action_state.control_vel * camera.mouse_speed, 0.f, XM_PI - 0.01f);
 		break;
 	}
 };
@@ -155,7 +156,7 @@ void XM_CALLCONV movable_camera_c::calculate_move_vectors()
 {
 	FXMVECTOR vmove_forward = XMLoadFloat3A(&look);
 	FXMVECTOR vmove_right = -XMVector3Normalize(XMVector3Cross(vmove_forward, XMLoadFloat3A(&up)));
-	FXMVECTOR vmove_up = XMVector3Normalize(XMVector3Cross(vmove_right, vmove_forward));
+	FXMVECTOR vmove_up = XMVector3Normalize(XMVector3Cross(vmove_forward, vmove_right));
 	XMStoreFloat3A(&move_forward, vmove_forward);
 	XMStoreFloat3A(&move_right, vmove_right);
 	XMStoreFloat3A(&move_up, vmove_up);

@@ -92,6 +92,64 @@ int get_dxgi_bpp(DXGI_FORMAT& dxgi_format)
     return -1;
 }
 
+wic_image_c::wic_image_c(wic_image_loader_c& owner, const fs::path& image_path) : loader(owner) {
+    load_image(image_path);
+}
+
+HRESULT wic_image_c::load_image(const fs::path& image_path) {
+    auto& wic_factory = loader.wic_factory;
+    ComPtr<IWICBitmapDecoder> wic_decoder;
+    ComPtr<IWICBitmapFrameDecode> wic_frame;
+    ComPtr<IWICFormatConverter> wic_format_converter;
+
+    HRESULT hres;
+    CK(wic_factory->CreateDecoderFromFilename(image_path.generic_wstring().c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &wic_decoder));
+    CK(wic_decoder->GetFrame(0, &wic_frame));
+
+    ComPtr<IWICBitmap> bitmap;
+    CK(wic_factory->CreateBitmapFromSource(wic_frame.Get(), WICBitmapCacheOnDemand, &bitmap));
+
+    CK(bitmap->GetSize(&width, &height));
+
+    WICPixelFormatGUID wic_pixel_format;
+    CK(bitmap->GetPixelFormat(&wic_pixel_format));
+
+    dxgi_format = dxfi_fomat(wic_pixel_format);
+
+    bool converted = false;
+    if (dxgi_format == DXGI_FORMAT_UNKNOWN)
+    {
+        const WICPixelFormatGUID compatible_wic_pixel_format = can_convert_to_compatible_dxgi_format(wic_pixel_format);
+        assert(compatible_wic_pixel_format != GUID_WICPixelFormatDontCare);
+
+        dxgi_format = dxfi_fomat(compatible_wic_pixel_format);
+        CK(wic_factory->CreateFormatConverter(&wic_format_converter));
+
+        BOOL can_convert = FALSE;
+        CK(wic_format_converter->CanConvert(wic_pixel_format, compatible_wic_pixel_format, &can_convert));
+        assert(can_convert);
+
+        CK(wic_format_converter->Initialize(wic_frame.Get(), compatible_wic_pixel_format, WICBitmapDitherTypeErrorDiffusion, 0, 0, WICBitmapPaletteTypeCustom));
+        converted = true;
+    }
+
+    const int bpp = get_dxgi_bpp(dxgi_format);
+    bytes_per_row = (width * bpp) / 8;
+    const size_t image_size = bytes_per_row * height;
+
+    data.resize(image_size);
+    BYTE* image_memory = &data[0];
+
+    if (converted) {
+        CK(wic_format_converter->CopyPixels(nullptr, UINT(bytes_per_row), UINT(image_size), image_memory));
+    }
+    else {
+        CK(wic_frame->CopyPixels(nullptr, UINT(bytes_per_row), UINT(image_size), image_memory));
+    }
+
+    return S_OK;
+}
+
 HRESULT wic_image_loader_c::create_resource_factory(D3D12MA::Allocator* allocator)
 {
     d3d_allocator = allocator;
@@ -127,120 +185,90 @@ void wic_image_loader_c::destroy_resource_factory()
     }*/
 }
 
-HRESULT wic_image_loader_c::load_texture(ID3D12Device* device, ID3D12GraphicsCommandList* command_list, const fs::path& texture_path, const std::wstring& resource_name, payload_t& payload, D3D12_RESOURCE_DESC& resource_desc, D3D12MA::Allocation*& texture)
+XMINT2 get_texture_size_appropriate_mip(int mip_level, int width, int height) {
+    XMINT2 dimensions;
+    dimensions.x = width << mip_level;
+    dimensions.y = height << mip_level;
+    return dimensions;
+}
+
+HRESULT wic_image_loader_c::upload_texture_image(
+    ID3D12Device* device, 
+    ID3D12GraphicsCommandList* command_list, 
+    const wic_image_c& image,
+    int mip_level_id,
+    int layer_id,
+    const std::string& resource_name,
+    int max_layers,
+    int max_mips,
+    D3D12MA::Allocation*& resource,
+    D3D12_RESOURCE_DESC& desc,
+    payload_t& payload)
 {
-    ComPtr<IWICBitmapDecoder> wic_decoder;
-    ComPtr<IWICBitmapFrameDecode> wic_frame;
-    ComPtr<IWICFormatConverter> wic_format_converter;
-
     HRESULT hres;
-    CK(wic_factory->CreateDecoderFromFilename(texture_path.generic_wstring().c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, &wic_decoder));
-    CK(wic_decoder->GetFrame(0, &wic_frame));
 
-    ComPtr<IWICBitmap> bitmap;
-    CK(wic_factory->CreateBitmapFromSource(wic_frame.Get(), WICBitmapCacheOnDemand, &bitmap));
+    if (!resource) {
+        XMINT2 texture_dims = get_texture_size_appropriate_mip(mip_level_id, image.get_width(), image.get_height());
+        desc = CD3DX12_RESOURCE_DESC::Tex2D(image.get_format(), texture_dims.x, texture_dims.y, max_layers, max_mips);
 
-    UINT width, height;
-    CK(bitmap->GetSize(&width, &height));
+        D3D12MA::ALLOCATION_DESC alloc_desc = {};
+        alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+        alloc_desc.CustomPool = nullptr;
+        alloc_desc.ExtraHeapFlags = D3D12_HEAP_FLAG_NONE;
+        alloc_desc.Flags = D3D12MA::ALLOCATION_FLAG_NONE;
 
-    WICPixelFormatGUID wic_pixel_format;
-    CK(bitmap->GetPixelFormat(&wic_pixel_format));
-
-    DXGI_FORMAT dxgi_format = dxfi_fomat(wic_pixel_format);
-
-    bool converted = false;
-    if (dxgi_format == DXGI_FORMAT_UNKNOWN)
-    {
-        const WICPixelFormatGUID compatible_wic_pixel_format = can_convert_to_compatible_dxgi_format(wic_pixel_format);
-        assert(compatible_wic_pixel_format != GUID_WICPixelFormatDontCare);
-
-        dxgi_format = dxfi_fomat(compatible_wic_pixel_format);
-        CK(wic_factory->CreateFormatConverter(&wic_format_converter));
-
-        BOOL can_convert = FALSE;
-        CK(wic_format_converter->CanConvert(wic_pixel_format, compatible_wic_pixel_format, &can_convert));
-        assert(can_convert);
-
-        CK(wic_format_converter->Initialize(wic_frame.Get(), compatible_wic_pixel_format, WICBitmapDitherTypeErrorDiffusion, 0, 0, WICBitmapPaletteTypeCustom));
-        converted = true;
+        ID3D12Resource* texture_resource = nullptr;
+        CK(d3d_allocator->CreateResource(&alloc_desc, &desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, &resource, IID_PPV_ARGS(&texture_resource)));
+        texture_resource->SetName(std::wstring(resource_name.begin(), resource_name.end()).c_str());
     }
 
-    const int bpp = get_dxgi_bpp(dxgi_format);
-    const size_t bytes_per_row = (width * bpp) / 8;
-    const size_t image_size = bytes_per_row * height;
-
-    std::vector<BYTE> memory_image(image_size);
-    BYTE* image_memory = &memory_image[0];
-
-    if (converted) {
-        CK(wic_format_converter->CopyPixels(nullptr, UINT(bytes_per_row), UINT(image_size), image_memory));
-    } else {
-        CK(wic_frame->CopyPixels(nullptr, UINT(bytes_per_row), UINT(image_size), image_memory));
-    }
-
-    const D3D12_RESOURCE_DESC texture_desc = CD3DX12_RESOURCE_DESC::Tex2D(dxgi_format, width, height);
-    const int num_of_subresources = (texture_desc.MipLevels + 1) * texture_desc.DepthOrArraySize;
+    const int num_of_subresources = desc.MipLevels * desc.DepthOrArraySize;
     
     UINT64 texture_upload_buffer_size = 0;
-	std::vector<UINT> numRows(texture_desc.MipLevels + 1);
-    std::vector<UINT64> rowSize(texture_desc.MipLevels + 1);
+	std::vector<UINT> numRows(desc.MipLevels);
+    std::vector<UINT64> rowSize(desc.MipLevels);
 	std::vector<D3D12_PLACED_SUBRESOURCE_FOOTPRINT> placed_footprint(num_of_subresources);
 
-	device->GetCopyableFootprints(&texture_desc, 0, num_of_subresources, 0, placed_footprint.data(), numRows.data(), rowSize.data(), &texture_upload_buffer_size);
+	device->GetCopyableFootprints(&desc, 0, num_of_subresources, 0, placed_footprint.data(), numRows.data(), rowSize.data(), &texture_upload_buffer_size);
 
     const auto allocation      = alloc_ring(texture_upload_buffer_size);
     const auto upload_resource = upload_ring_buffer->GetResource();
 
-    for (int arrayIndex = 0; arrayIndex < texture_desc.DepthOrArraySize; arrayIndex++) {
-        for (int mipIndex = 0; mipIndex < texture_desc.MipLevels + 1; mipIndex++) {
-            const int subResourceIndex = mipIndex + (arrayIndex * texture_desc.MipLevels);
+    const int subResourceIndex = mip_level_id + (layer_id * desc.MipLevels);
 
-            const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& subResourceLayout = placed_footprint[subResourceIndex];
-            const uint64_t subResourceHeight = numRows[subResourceIndex];
-            const uint64_t subResourcePitch  = subResourceLayout.Footprint.RowPitch; // align by D3D12_TEXTURE_DATA_PITCH_ALIGNMENT??
-            const uint64_t subResourceDepth  = subResourceLayout.Footprint.Depth;
-            const uint64_t pitch = std::min(bytes_per_row, subResourcePitch);
+    const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& subResourceLayout = placed_footprint[subResourceIndex];
+    const uint64_t subResourceHeight = numRows[subResourceIndex];
+    const uint64_t subResourcePitch  = subResourceLayout.Footprint.RowPitch; // align by D3D12_TEXTURE_DATA_PITCH_ALIGNMENT??
+    const uint64_t subResourceDepth  = subResourceLayout.Footprint.Depth;
+    const uint64_t pitch = std::min(static_cast<uint64_t>(image.get_width()), subResourcePitch);
 
-            BYTE* upload_memory;
-            CD3DX12_RANGE read_range(0, 0);
-            CK(upload_resource->Map(subResourceIndex, &read_range, reinterpret_cast<void**>(&upload_memory)));
+    assert(desc.Format == image.get_format());
+    assert(subResourceHeight <= image.get_height());
+    assert(subResourcePitch >= image.get_height());
 
-            BYTE* destinationSubResourceMemory = upload_memory + subResourceLayout.Offset + allocation.gpu_pointer;
+    BYTE* upload_memory;
+    CD3DX12_RANGE read_range(0, 0);
+    CK(upload_resource->Map(0, &read_range, reinterpret_cast<void**>(&upload_memory)));
 
-            for (uint64_t sliceIndex = 0; sliceIndex < subResourceDepth; sliceIndex++) {
-
-                const BYTE* sourceSubResourceMemory = image_memory;
-                for (int height = 0; height < subResourceHeight; height++)
-                {
-                    memcpy(destinationSubResourceMemory, sourceSubResourceMemory, pitch);
-                    destinationSubResourceMemory += subResourcePitch;
-                    sourceSubResourceMemory += bytes_per_row;
-                }
-            }
-
-            upload_resource->Unmap(subResourceIndex, nullptr);
+    BYTE* destinationSubResourceMemory = upload_memory + subResourceLayout.Offset + allocation.gpu_pointer;
+    for (uint64_t sliceIndex = 0; sliceIndex < subResourceDepth; sliceIndex++) {
+        const BYTE* sourceSubResourceMemory = image.get_image_data();
+        for (int height = 0; height < subResourceHeight; height++)
+        {
+            memcpy(destinationSubResourceMemory, sourceSubResourceMemory, pitch);
+            destinationSubResourceMemory += subResourcePitch;
+            sourceSubResourceMemory += image.get_stride();
         }
     }
 
-    D3D12MA::ALLOCATION_DESC alloc_desc = {};
-    alloc_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
-    alloc_desc.CustomPool = nullptr;
-    alloc_desc.ExtraHeapFlags = D3D12_HEAP_FLAG_NONE;
-    alloc_desc.Flags = D3D12MA::ALLOCATION_FLAG_NONE;
+    upload_resource->Unmap(0, nullptr);
 
-    ID3D12Resource* texture_resource = nullptr;
-    CK(d3d_allocator->CreateResource(&alloc_desc, &texture_desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, &texture, IID_PPV_ARGS(&texture_resource)));
-    texture_resource->SetName(resource_name.c_str());
+    command_list->CopyTextureRegion(
+        &CD3DX12_TEXTURE_COPY_LOCATION(resource->GetResource(), subResourceIndex),
+        0, 0, 0, 
+        &CD3DX12_TEXTURE_COPY_LOCATION(upload_resource, placed_footprint[subResourceIndex]),
+        nullptr);
 
-    for (int i = 0; i < placed_footprint.size(); i++) {
-        command_list->CopyTextureRegion(
-            &CD3DX12_TEXTURE_COPY_LOCATION(texture_resource, i), 
-            0, 0, 0, 
-            &CD3DX12_TEXTURE_COPY_LOCATION(upload_resource, placed_footprint[i]), 
-            nullptr);
-    }
-
-    resource_desc = texture_desc;
     payload.allocation = allocation;
 
     return S_OK;

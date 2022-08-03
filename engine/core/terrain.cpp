@@ -4,6 +4,22 @@
 #include "d3dcompiler.h"
 #include "utils.h"
 
+terrain_grid::terrain_grid(XMINT2 dimensions_, XMFLOAT3 origin_, XMFLOAT2 tile_size_, float min_height_, float max_height_) :
+    dimensions(dimensions_),
+    origin(origin_),
+    tile_size(tile_size_),
+    min_height(min_height_),
+    max_height(max_height_)
+{
+    fill_cb();
+
+    auto& engine = engine_c::get_instance();
+    resource_manager = engine.get_resource_manager();
+
+    tile_lod.resize(dimensions.x * dimensions.y);
+    std::fill(tile_lod.begin(), tile_lod.end(), -1);
+}
+
 HRESULT terrain_base_c::allocate_resources()
 {
     auto& engine = engine_c::get_instance();
@@ -58,11 +74,11 @@ void terrain_base_c::render(ID3D12GraphicsCommandList* command_list)
 
 HRESULT terrain_base_c::update(ID3D12GraphicsCommandList* command_list)
 {
-    const std::wstring resource_name = L"sample_terrain/LOD1/image_x0_y1.bmp";
+    const std::string resource_name = "sample_terrain/image_x0_y1.bmp";
 
     if (resource_manager->query_resource(resource_name) == resource_manager_c::AVAILABLE)
     {
-        const auto allocation = resource_manager->get_resource(resource_name);
+        const auto& allocation = resource_manager->get_resource(resource_name);
 
         // Describe and create a SRV for the texture.
         D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};

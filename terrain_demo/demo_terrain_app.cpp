@@ -7,7 +7,7 @@
 demo_terrain_app_c::demo_terrain_app_c(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int cmd_show) {
     wnd_app_c::create_window(instance, prev_instance, cmd_line, cmd_show);
 
-    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_UP, false, false, ACTION_CAMERA_MOVE_FORWARD);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_UP,      false, false, ACTION_CAMERA_MOVE_FORWARD);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_DOWN,    false, false, ACTION_CAMERA_MOVE_BACKWARD);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_LEFT,    false, false, ACTION_CAMERA_MOVE_LEFT);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_RIGHT,   false, false, ACTION_CAMERA_MOVE_RIGHT);
@@ -15,6 +15,8 @@ demo_terrain_app_c::demo_terrain_app_c(HINSTANCE instance, HINSTANCE prev_instan
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_S,       false, false, ACTION_CAMERA_MOVE_BACKWARD);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_A,       false, false, ACTION_CAMERA_MOVE_LEFT);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_D,       false, false, ACTION_CAMERA_MOVE_RIGHT);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_E,       false, false, ACTION_CAMERA_MOVE_UP);
+    mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_Q,       false, false, ACTION_CAMERA_MOVE_DOWN);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_LBUTTON, false, false, ACTION_CAMERA_ROTATE_RIGHT);
     mouse_keyboard_input_controller->register_action_id(VIRTUAL_KEY_LBUTTON, false, false, ACTION_CAMERA_ROTATE_UP);
 

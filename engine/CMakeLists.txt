@@ -65,6 +65,7 @@ include_directories(
 file(
     GLOB SOURCES
 		./platform/wnd_app.cpp
+		./core/image.cpp
 		./core/engine.cpp
 	    ./core/input_controller.cpp
 		./core/resource_manager.cpp

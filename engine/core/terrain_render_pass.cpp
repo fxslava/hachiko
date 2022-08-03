@@ -79,7 +79,7 @@ HRESULT terrain_render_pass_c::create_pso(renderer_c* renderer)
     pso_desc.DS = CD3DX12_SHADER_BYTECODE(&domain_shader_bytecode[0], domain_shader_bytecode.size());
     pso_desc.PS = CD3DX12_SHADER_BYTECODE(&pixel_shader_bytecode[0], pixel_shader_bytecode.size());
     pso_desc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-    pso_desc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+    //pso_desc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
     pso_desc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
     pso_desc.DepthStencilState.DepthEnable = TRUE;
     pso_desc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;

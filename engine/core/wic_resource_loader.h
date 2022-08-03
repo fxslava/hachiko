@@ -1,15 +1,31 @@
 #pragma once
 #include "pch.h"
 #include "utils.h"
+#include "image.h"
 
 constexpr size_t RESOURCE_UPLOAD_BUFFER_SIZE_BYTES = 1024 * 1024 * 512;
 constexpr size_t RESOURCE_UPLOAD_BUFFER_SIZE = RESOURCE_UPLOAD_BUFFER_SIZE_BYTES / D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
 
 using Microsoft::WRL::ComPtr;
+using namespace DirectX;
 namespace fs = std::filesystem;
+
+class wic_image_loader_c;
+
+class wic_image_c : public image_c {
+public:
+	wic_image_c(wic_image_loader_c& owner, const fs::path& image_path);
+
+private:
+	HRESULT load_image(const fs::path& image_path);
+
+private:
+	const wic_image_loader_c& loader;
+};
 
 class wic_image_loader_c
 {
+	friend wic_image_c;
 private:
 	static size_t get_ring_pointer(size_t ring_index) {
 		return (ring_index % RESOURCE_UPLOAD_BUFFER_SIZE) * D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT;
@@ -45,6 +61,7 @@ private:
 	void free_ring(ring_allocation_t allocation) {
 		while (tail.compare_exchange_strong(allocation.ring_index, allocation.ring_index + allocation.size)) {};
 	}
+
 public:
 	struct payload_t
 	{
@@ -53,7 +70,20 @@ public:
 
 	HRESULT create_resource_factory(D3D12MA::Allocator* allocator);
 	void destroy_resource_factory();
-	HRESULT load_texture(ID3D12Device* device, ID3D12GraphicsCommandList* command_list, const fs::path& texture_path, const std::wstring& resource_name, payload_t& payload, D3D12_RESOURCE_DESC& resource_desc, D3D12MA::Allocation*& texture);
+
+	HRESULT upload_texture_image(
+		ID3D12Device* device, 
+		ID3D12GraphicsCommandList* command_list,
+		const wic_image_c& image,
+		int mip_level_id,
+		int layer_id,
+		const std::string& resource_name,
+		int max_layers,
+		int max_mips,
+		D3D12MA::Allocation*& resource,
+		D3D12_RESOURCE_DESC& desc,
+		payload_t& payload);
+
 	void pay(payload_t payload)
 	{
 		free_ring(payload.allocation);

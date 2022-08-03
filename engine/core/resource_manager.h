@@ -11,11 +11,13 @@ namespace fs = std::filesystem;
 
 constexpr int RESOURCE_LOADING_CONCURRENT_TASKS_MAX_NUM = 128;
 constexpr int RESOURCE_UPLOAD_CHUNK_SIZE = 8;
+constexpr int RESOURCE_MAX_MIP_MAPS = 8;
+constexpr int RESOURCE_MAX_LAYERS = 256;
 
 class resource_manager_c
 {
 public:
-	enum RESOURCE_ENTITY_TYPE
+	enum RESOURCE_TYPE
 	{
 		UNDEFINED,
 		TEXTURE
@@ -37,20 +39,25 @@ public:
 		BUSY
 	};
 
-	struct RESOURCE_ENTITY
-	{
-		RESOURCE_ENTITY_TYPE type = UNDEFINED;
-		RESOURCE_STATE state = RESOURCE_NOT_EXIST;
-		fs::path resource_path = "";
+	struct GPU_SUBRESOURCE {
+		fs::path file_path;
+		int layer_id = 0;
+		int mip_id = 0;
 	};
 
 	struct GPU_RESOURCE
 	{
-		D3D12MA::Allocation* resource;
-		D3D12_RESOURCE_DESC desc;
+		RESOURCE_STATE state = RESOURCE_NOT_EXIST;
+		D3D12MA::Allocation* resource = nullptr;
+		D3D12_RESOURCE_DESC desc{};
+		std::list<int> subresources;
+		std::string name;
+		int max_num_layers = 1;
+		int max_num_mip_maps = 1;
 	};
 
 	using RESOURCE_ID = int32_t;
+	using SUBRESOURCE_ID = int32_t;
 
 	void init();
 	void init(const fs::path& root);
@@ -60,42 +67,50 @@ public:
 	void destroy_resource_factory();
 	HRESULT wait_for_resources_uploaded();
 	QUERY_RESOURCE_STATE query_resource(RESOURCE_ID resource_id);			 // thread safe
-	QUERY_RESOURCE_STATE query_resource(const std::wstring& resource_id);    // thread safe
+	QUERY_RESOURCE_STATE query_resource(const std::string& resource_id);    // thread safe
 
 	GPU_RESOURCE* get_resource(RESOURCE_ID resource_id)
 	{
-		if (resources[resource_id].state == RESOURCE_AVAILABLE) {
+		if (gpu_resources[resource_id].state == RESOURCE_AVAILABLE) {
 			return &gpu_resources[resource_id];
 		}
 
 		return nullptr;
 	}
 
-	GPU_RESOURCE* get_resource(const std::wstring& resource_id)
+	GPU_RESOURCE* get_resource(const std::string& resource_id)
 	{
 		if (!is_available(resource_id)) {
 			return nullptr;
 		}
 
-		return get_resource(recource_registry[resource_id]);
+		return get_resource(resource_registry[resource_id]);
 	}
 
 private:
+	struct RESOURCE_DESC_FROM_NAME {
+		int32_t layer_id = 0;
+		int32_t lod_id = 0;
+	};
+
+	RESOURCE_DESC_FROM_NAME get_desc_from_resource_name(std::string resource_name);
+
 	wic_image_loader_c wic_image_loader;
 	ComPtr<ID3D12CommandQueue> upload_queue;
 
 	struct LOAD_QUERY
 	{
 		LOAD_QUERY() {}
-		LOAD_QUERY(RESOURCE_ENTITY_TYPE type_, fs::path file_name_) : type(type_), resource_path(file_name_) {};
+		LOAD_QUERY(RESOURCE_TYPE type_, fs::path file_name_) : type(type_) {};
 
-		RESOURCE_ENTITY_TYPE type = TEXTURE;
-		fs::path resource_path = "";
+		RESOURCE_TYPE type = TEXTURE;
 		RESOURCE_ID resource_id = -1;
+		int mip_id = 0;
+		int layer_id = 0;
 	};
 	mutable LOAD_QUERY* TERMINATE_QUERY = nullptr;
 
-	bool is_available(const std::wstring& resource_id);
+	bool is_available(const std::string& resource_name);
 
 	void resource_manager_scheduler();
 	static void static_resource_manager_scheduler(resource_manager_c* owner) {
@@ -103,10 +118,10 @@ private:
 	}
 
 	std::thread *scheduler = nullptr;
-	std::unordered_map<std::wstring, RESOURCE_ID> recource_registry;
-	std::vector<RESOURCE_ENTITY> resources;
+	std::unordered_map<std::string, RESOURCE_ID> resource_registry;
+	std::unordered_map<std::string, SUBRESOURCE_ID> subresource_registry;
 	std::vector<GPU_RESOURCE> gpu_resources;
-	std::vector<std::wstring> resource_names;
+	std::vector<GPU_SUBRESOURCE> gpu_subresources;
 
 	std::mutex resource_lock;
 	std::atomic<int> in_progress_tasks_num = 0;
