@@ -91,4 +91,9 @@ private:
 	ComPtr<D3D12MA::Allocator>   gpu_allocator;
 
 	renderer_c* d3d_renderer = nullptr;
+
+	// Synchronization objects.
+	HANDLE upload_fence_event = 0;
+	UINT64 upload_fence_value = 0;
+	ComPtr<ID3D12Fence> upload_fence;
 };

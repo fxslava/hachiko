@@ -70,7 +70,17 @@ HRESULT demo_terrain_app_c::update(ID3D12GraphicsCommandList* command_list) {
     view_camera.update(elapsed_time);
     view_camera.apply_camera_view();
     CK(terrain.update(command_list));
-    CK(engine.update(command_list));
+
+    return S_OK;
+}
+
+
+HRESULT demo_terrain_app_c::prepare_frame(ID3D12GraphicsCommandList* command_list) {
+    HRESULT hres;
+    auto& engine = engine_c::get_instance();
+
+    CK(terrain.prepare_frame(command_list));
+    CK(engine.prepare_frame(command_list));
 
     return S_OK;
 }
@@ -82,6 +92,7 @@ HRESULT demo_terrain_app_c::on_render() {
     HRESULT hres;
     CK(d3d_renderer->begin_render(&command_list));
 
+    prepare_frame(command_list);
     update(command_list);
 
     float clear_color[] = { 0.4f, 0.4f, 0.7f, 1.0f };

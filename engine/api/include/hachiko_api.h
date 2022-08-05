@@ -14,7 +14,6 @@ class renderer_i {
 public:
 	virtual HRESULT create_pipeline(UINT width, UINT height, D3D_FEATURE_LEVEL feature_level, HWND wnd_handle) = 0;
 	virtual HRESULT wait_for_prev_frame() = 0;
-	virtual HRESULT begin_command_list(ID3D12GraphicsCommandList** command_list, bool use_screen_render_target = true) = 0;
 	virtual HRESULT begin_upload_command_list(ID3D12GraphicsCommandList** command_list) = 0;
 	virtual HRESULT end_command_list(ID3D12GraphicsCommandList* command_list) = 0;
 	virtual HRESULT clear_render_target(float clear_color[4]) = 0;

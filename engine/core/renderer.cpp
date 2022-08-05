@@ -47,23 +47,6 @@ void renderer_c::destroy_pipeline() {
 }
 
 
-HRESULT renderer_c::begin_command_list(ID3D12GraphicsCommandList** command_list, bool use_screen_render_target)
-{
-    HRESULT hres;
-    CK(d3d_command_allocator->Reset());
-    CK(d3d_direct_command_list->Reset(d3d_command_allocator.Get(), nullptr));
-
-    if (use_screen_render_target)
-    {
-        CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(d3d_rtv_heap->GetCPUDescriptorHandleForHeapStart(), frame_idx, rtv_desc_size);
-        D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = d3d_dsv_heap->GetCPUDescriptorHandleForHeapStart();
-        d3d_direct_command_list->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
-    }
-    *command_list = d3d_direct_command_list.Get();
-    return hres;
-}
-
-
 HRESULT renderer_c::begin_render(ID3D12GraphicsCommandList** command_list)
 {
     HRESULT hres;
@@ -119,9 +102,6 @@ HRESULT renderer_c::end_render(ID3D12GraphicsCommandList* command_list) {
     CK(d3d_render_command_list->Close());
 
     // Execute the command list.
-    ID3D12CommandList* pp_custom_lists[] = { d3d_direct_command_list.Get() };
-    d3d_direct_queue->ExecuteCommandLists(_countof(pp_custom_lists), pp_custom_lists);
-
     ID3D12CommandList* pp_render_lists[] = { d3d_render_command_list.Get() };
     d3d_direct_queue->ExecuteCommandLists(_countof(pp_render_lists), pp_render_lists);
 
@@ -301,9 +281,6 @@ HRESULT renderer_c::create_render_target_view(const UINT frame_num) {
 
 HRESULT renderer_c::create_direct_command_lists() {
     HRESULT hres;
-    CK(d3d_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, d3d_command_allocator.Get(), nullptr, IID_PPV_ARGS(&d3d_direct_command_list)));
-    CK(d3d_direct_command_list->Close());
-
     CK(d3d_device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, render_command_allocator.Get(), nullptr, IID_PPV_ARGS(&d3d_render_command_list)));
     CK(d3d_render_command_list->Close());
 

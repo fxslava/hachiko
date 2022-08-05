@@ -20,7 +20,7 @@ public:
     CONSTANT_BUFFER_HANDLE common_engine_cb_handle = CONSTANT_BUFFER_INVALID_HANDLE;
 
     HRESULT init_sub_systems(const UINT width, const UINT height, const D3D_FEATURE_LEVEL feature_level, HWND wnd_handle);
-    HRESULT update(ID3D12GraphicsCommandList* command_list);
+    HRESULT prepare_frame(ID3D12GraphicsCommandList* command_list);
     void shut_down();
 
     renderer_c*                 get_renderer()                 { return &d3d_renderer; }

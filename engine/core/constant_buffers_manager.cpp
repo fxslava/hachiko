@@ -121,4 +121,15 @@ void constant_buffers_manager_c::copy_buffers_on_gpu(ID3D12GraphicsCommandList* 
 	{
         constant_buffer.copy_buffer_on_gpu(command_list);
 	}
+
+    /*HRESULT hres;
+    const UINT64 fence = upload_fence_value;
+    CK(d3d_direct_queue->Signal(frame_fance.Get(), fence));
+    upload_fence_value++;
+
+    if (frame_fance->GetCompletedValue() < fence)
+    {
+        CK(frame_fance->SetEventOnCompletion(fence, frame_fence_event));
+        WaitForSingleObject(frame_fence_event, INFINITE);
+    }*/
 }

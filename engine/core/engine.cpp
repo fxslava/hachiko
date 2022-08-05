@@ -23,7 +23,7 @@ void engine_c::shut_down()
 }
 
 
-HRESULT engine_c::update(ID3D12GraphicsCommandList* command_list)
+HRESULT engine_c::prepare_frame(ID3D12GraphicsCommandList* command_list)
 {
     HRESULT hres = constant_buffers_manager.update_constant_buffer(common_engine_cb_handle, reinterpret_cast<BYTE*>(&common_engine_cb), sizeof(common_engine_cb));
     constant_buffers_manager.copy_buffers_on_gpu(command_list);

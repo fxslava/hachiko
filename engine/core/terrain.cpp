@@ -16,8 +16,11 @@ terrain_grid::terrain_grid(XMINT2 dimensions_, XMFLOAT3 origin_, XMFLOAT2 tile_s
     auto& engine = engine_c::get_instance();
     resource_manager = engine.get_resource_manager();
 
-    tile_lod.resize(dimensions.x * dimensions.y);
+    const int terrain_tiles_num = dimensions.x * dimensions.y;
+    tile_lod.resize(terrain_tiles_num);
+    tile_lifetime.resize(terrain_tiles_num);
     std::fill(tile_lod.begin(), tile_lod.end(), -1);
+    std::fill(tile_lifetime.begin(), tile_lifetime.end(), -1);
 }
 
 HRESULT terrain_base_c::allocate_resources()
@@ -72,6 +75,16 @@ void terrain_base_c::render(ID3D12GraphicsCommandList* command_list)
     command_list->DrawInstanced(4, num_instances, 0, 0);
 }
 
+
+HRESULT terrain_base_c::prepare_frame(ID3D12GraphicsCommandList* command_list)
+{
+    HRESULT hres;
+    CK(constant_buffers_manager->update_constant_buffer(common_terrain_cb_handle, reinterpret_cast<BYTE*>(&common_terrain_cb), sizeof(common_terrain_cb)));
+
+    return S_OK;
+}
+
+
 HRESULT terrain_base_c::update(ID3D12GraphicsCommandList* command_list)
 {
     const std::string resource_name = "sample_terrain/image_x0_y1.bmp";
@@ -90,9 +103,6 @@ HRESULT terrain_base_c::update(ID3D12GraphicsCommandList* command_list)
 
         srv_heap_not_empty = true;
     }
-
-    HRESULT hres;
-    CK(constant_buffers_manager->update_constant_buffer(common_terrain_cb_handle, reinterpret_cast<BYTE*>(&common_terrain_cb), sizeof(common_terrain_cb)));
 
     return S_OK;
 }

@@ -15,7 +15,6 @@ public:
 	HRESULT begin_render(ID3D12GraphicsCommandList** command_list);
 	HRESULT end_render(ID3D12GraphicsCommandList* command_list);
 	HRESULT clear_render_target(float clear_color[4]);
-	HRESULT begin_command_list(ID3D12GraphicsCommandList** command_list, bool use_screen_render_target = true);
 	HRESULT begin_upload_command_list(ID3D12GraphicsCommandList** command_list);
 	HRESULT end_command_list(ID3D12GraphicsCommandList* command_list);
 
@@ -50,7 +49,6 @@ private:
 	ComPtr<ID3D12CommandAllocator>      render_command_allocator;
 	ComPtr<ID3D12CommandAllocator>      copy_command_allocator;
 	ComPtr<ID3D12GraphicsCommandList>   d3d_render_command_list;
-	ComPtr<ID3D12GraphicsCommandList>   d3d_direct_command_list;
 	ComPtr<ID3D12GraphicsCommandList>   d3d_upload_command_list;
 	std::vector<ComPtr<ID3D12Resource>> d3d_render_targets{};
 	D3D12MA::Allocation*                d3d_depth_buffer = nullptr;

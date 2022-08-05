@@ -262,7 +262,6 @@ HRESULT wic_image_loader_c::upload_texture_image(
     upload_resource->Unmap(0, nullptr);
 
     placed_footprint.Offset = allocation.gpu_pointer;
-
     command_list->CopyTextureRegion(
         &CD3DX12_TEXTURE_COPY_LOCATION(resource->GetResource(), subResourceIndex),
         0, 0, 0, 
