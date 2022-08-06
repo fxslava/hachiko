@@ -75,6 +75,7 @@ file(
 		./core/engine.cpp
 	    ./core/input_controller.cpp
 		./core/resource_manager.cpp
+		./core/gpu_heaps_manager.cpp
 		./core/constant_buffers_manager.cpp
 		./core/wic_resource_loader.cpp
         ./core/renderer.cpp

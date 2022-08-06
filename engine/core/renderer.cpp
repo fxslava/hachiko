@@ -3,8 +3,9 @@
 #define CK(v) if (FAILED(hres = (v))) return hres
 
 
-HRESULT renderer_c::create_pipeline(const UINT width, const UINT height, const D3D_FEATURE_LEVEL feature_level, HWND wnd_handle) {
+HRESULT renderer_c::create_pipeline(const UINT width, const UINT height, UINT num_back_buffer_frames, const D3D_FEATURE_LEVEL feature_level, HWND wnd_handle) {
     screen_resolution = XMINT2(width, height);
+    swap_chain_frame_num = num_back_buffer_frames;
     d3d_viewport = CD3DX12_VIEWPORT(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
     d3d_scissor_rect = CD3DX12_RECT(0, 0, width, height);
     this->wnd_handle = wnd_handle;

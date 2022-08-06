@@ -10,7 +10,7 @@ using Microsoft::WRL::ComPtr;
 
 class renderer_c : public renderer_i {
 public:
-	HRESULT create_pipeline(UINT width, UINT height, D3D_FEATURE_LEVEL feature_level, HWND wnd_handle);
+	HRESULT create_pipeline(UINT width, UINT height, UINT num_back_buffer_frames, D3D_FEATURE_LEVEL feature_level, HWND wnd_handle);
 	HRESULT wait_for_prev_frame();
 	HRESULT begin_render(ID3D12GraphicsCommandList** command_list);
 	HRESULT end_render(ID3D12GraphicsCommandList* command_list);

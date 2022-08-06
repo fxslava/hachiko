@@ -86,13 +86,6 @@ HRESULT terrain_base_c::allocate_resources(const TERRAIN_DESC& desc)
     HRESULT hres = S_OK;
     CK(terrain_render_pass.create_pso(d3d_renderer));
 
-    // Describe and create a shader resource view (SRV) heap for the texture.
-    D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-    srvHeapDesc.NumDescriptors = 2;
-    srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-    CK(d3d_device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srv_heap)));
-
     terrain_origin = XMFLOAT3(desc.origin_x, desc.origin_y, desc.origin_z);
     terrain_dimensions = XMINT2(desc.dimension_x, desc.dimension_y);
     tile_size = desc.tile_size;
@@ -103,6 +96,28 @@ HRESULT terrain_base_c::allocate_resources(const TERRAIN_DESC& desc)
     update_constant_buffer();
 
     grid.init(terrain_dimensions, terrain_origin, tile_size, min_height, max_height);
+
+    constant_buffers_handles = gpu_heaps_manager->static_alloc(2);
+    auto& cpu_handle = constant_buffers_handles.cpu_handle;
+    int descriptor_size = d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    // Common Engine CBV
+    {
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc;
+        cbv_desc.BufferLocation = constant_buffers_manager->get_buffer_gpu_virtual_address(engine.common_engine_cb_handle);
+        cbv_desc.SizeInBytes = static_cast<UINT>(constant_buffers_manager->get_buffer_size(engine.common_engine_cb_handle));
+        d3d_device->CreateConstantBufferView(& cbv_desc, cpu_handle);
+    }
+
+    cpu_handle.Offset(1, descriptor_size);
+
+    // Common Terrain CBV
+    {
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc;
+        cbv_desc.BufferLocation = constant_buffers_manager->get_buffer_gpu_virtual_address(common_terrain_cb_handle);
+        cbv_desc.SizeInBytes = static_cast<UINT>(constant_buffers_manager->get_buffer_size(common_terrain_cb_handle));
+        d3d_device->CreateConstantBufferView(&cbv_desc, cpu_handle);
+    }
 
     return S_OK;
 }
@@ -115,24 +130,6 @@ void terrain_base_c::update_constant_buffer() {
 
 void terrain_base_c::render(ID3D12GraphicsCommandList* command_list)
 {
-    auto& engine = engine_c::get_instance();
-    terrain_render_pass.setup(command_list);
-
-    std::vector cb_handlers = { engine.common_engine_cb_handle, common_terrain_cb_handle };
-    ID3D12DescriptorHeap* cbv_heap;
-    constant_buffers_manager->get_cbv_heap(cb_handlers, cbv_heap);
-
-    ID3D12DescriptorHeap* ppHeaps[] = { cbv_heap };
-    command_list->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-    command_list->SetGraphicsRootDescriptorTable(0, CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_heap->GetGPUDescriptorHandleForHeapStart(), 1, d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-    command_list->SetGraphicsRootDescriptorTable(1, CD3DX12_GPU_DESCRIPTOR_HANDLE(cbv_heap->GetGPUDescriptorHandleForHeapStart(), 0, d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
-
-    if (srv_heap_not_empty) {
-        ID3D12DescriptorHeap* ppHeaps[] = { srv_heap.Get() };
-        command_list->SetDescriptorHeaps(_countof(ppHeaps), ppHeaps);
-        command_list->SetGraphicsRootDescriptorTable(2, srv_heap->GetGPUDescriptorHandleForHeapStart());
-    }
-
     const int num_instances = common_terrain_cb.grid_dim.x* common_terrain_cb.grid_dim.y;
 
     command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST);
@@ -145,16 +142,12 @@ HRESULT terrain_base_c::prepare_frame(ID3D12GraphicsCommandList* command_list)
     HRESULT hres;
     CK(constant_buffers_manager->update_constant_buffer(common_terrain_cb_handle, reinterpret_cast<BYTE*>(&common_terrain_cb), sizeof(common_terrain_cb)));
 
-    return S_OK;
-}
-
-
-HRESULT terrain_base_c::update(ID3D12GraphicsCommandList* command_list)
-{
     const std::string resource_name = "sample_terrain/image_x0_y1.bmp";
 
     if (resource_manager->query_resource(resource_name) == resource_manager_c::AVAILABLE)
     {
+        srv_descriptor_id = gpu_heaps_manager->dynamic_alloc(1);
+
         const auto& allocation = resource_manager->get_resource(resource_name);
 
         // Describe and create a SRV for the texture.
@@ -163,9 +156,25 @@ HRESULT terrain_base_c::update(ID3D12GraphicsCommandList* command_list)
         srvDesc.Format = allocation->desc.Format;
         srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MipLevels = 1;
-        d3d_device->CreateShaderResourceView(allocation->resource->GetResource(), &srvDesc, srv_heap->GetCPUDescriptorHandleForHeapStart());
+        d3d_device->CreateShaderResourceView(allocation->resource->GetResource(), &srvDesc, srv_descriptor_id.handle);
 
         srv_heap_not_empty = true;
+    }
+
+    return S_OK;
+}
+
+
+HRESULT terrain_base_c::update(ID3D12GraphicsCommandList* command_list)
+{
+    auto gpu_handle = constant_buffers_handles.gpu_handle;
+
+    terrain_render_pass.setup(command_list);
+    command_list->SetGraphicsRootDescriptorTable(0, CD3DX12_GPU_DESCRIPTOR_HANDLE(gpu_handle, 1, d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+    command_list->SetGraphicsRootDescriptorTable(1, CD3DX12_GPU_DESCRIPTOR_HANDLE(gpu_handle, 0, d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
+
+    if (srv_heap_not_empty) {
+        command_list->SetGraphicsRootDescriptorTable(2, gpu_heaps_manager->get_gpu_descriptor_handle(srv_descriptor_id));
     }
 
     return S_OK;

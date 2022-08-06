@@ -60,7 +60,7 @@ HRESULT demo_terrain_app_c::create_pipline(D3D_FEATURE_LEVEL feature_level) {
     terrain_desc.origin_z = 160.0f;
     terrain_desc.tile_size = 40.0f;
 
-    CK(engine.init_sub_systems(1920, 1080, feature_level, wnd_handle));
+    CK(engine.init_sub_systems(1920, 1080, 2, feature_level, wnd_handle));
     CK(terrain.allocate_resources(terrain_desc));
 
     // get subsystems pointers

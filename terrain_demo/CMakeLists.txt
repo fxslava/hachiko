@@ -10,6 +10,10 @@ include_directories(
     ../engine/core/thirdparty/d3d12memalloc
     ../engine/core/thirdparty/directxmath/inc
     ../engine/core/thirdparty/directx
+
+    # ImGUI
+	../engine/core/thirdparty/imgui/
+	../engine/core/thirdparty/imgui/backends
 )
 
 file(
@@ -19,10 +23,21 @@ file(
         ./demo_terrain_app.cpp
 )
 
+file(
+	GLOB SRC_IMGUI
+		../engine/core/thirdparty/imgui/backends/imgui_impl_dx12.cpp
+		../engine/core/thirdparty/imgui/backends/imgui_impl_win32.cpp
+		../engine/core/thirdparty/imgui/imgui.cpp
+		../engine/core/thirdparty/imgui/imgui_draw.cpp
+		../engine/core/thirdparty/imgui/imgui_tables.cpp
+		../engine/core/thirdparty/imgui/imgui_widgets.cpp
+)
+
 add_executable (
     ${PROJECT_NAME} 
     WIN32 
         ${APP_SOURCES}
+        ${SRC_IMGUI}
     )
 
 set(
@@ -41,3 +56,5 @@ target_compile_definitions(demo_terrain
 )
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
+source_group("imgui" FILES ${SRC_IMGUI})

@@ -91,13 +91,14 @@ protected:
 		XMFLOAT4 sizes  = XMFLOAT4(40.f, 40.f, 0.f, 100.f);
 	} common_terrain_cb;
 
-	CONSTANT_BUFFER_HANDLE common_terrain_cb_handle = CONSTANT_BUFFER_INVALID_HANDLE;
+	int common_terrain_cb_handle = -1;
 
 	terrain_grid grid;
 	terrain_render_pass_c terrain_render_pass;
 	shader_pass_c sample_shader_pass;
 
-	ComPtr<ID3D12DescriptorHeap> srv_heap;
-
 	bool srv_heap_not_empty = false;
+
+	DESCRIPTOR_MANAGER_HANDLE constant_buffers_handles;
+	DESCRIPTOR_HEAP_ID srv_descriptor_id{};
 };

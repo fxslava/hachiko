@@ -1,5 +1,12 @@
 #include "constant_buffers_manager.h"
-#include "renderer.h"
+#include "engine.h"
+
+void constant_buffer_c::init()
+{
+	auto& engine = engine_c::get_instance();
+	d3d_device = engine.get_renderer()->get_d3d_device();
+	gpu_allocator = engine.get_renderer()->get_gpu_allocator();
+};
 
 
 HRESULT constant_buffer_c::allocate(const std::wstring name, size_t size)
@@ -54,64 +61,27 @@ void constant_buffer_c::copy_buffer_on_gpu(ID3D12GraphicsCommandList* command_li
     command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gpu_buffer->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
 }
 
-
-HRESULT constant_buffers_manager_c::create_constant_buffer(CONSTANT_BUFFER_HANDLE& cb_handle, std::wstring name, size_t size)
+HRESULT constant_buffers_manager_c::create_constant_buffer(int& buffer_id, std::wstring name, size_t size)
 {
     HRESULT hres;
 
-    constant_buffers_array.emplace_back(d3d_renderer);
+    constant_buffers_array.emplace_back();
     auto& constant_buffer = constant_buffers_array.back();
+
+	constant_buffer.init();
 
     CK(constant_buffer.allocate(name, size));
 
-    cb_handle = current_constant_buffer_handle_idx++;
+	buffer_id = current_constant_buffer_handle_idx++;
 
     return S_OK;
 }
 
 
-HRESULT constant_buffers_manager_c::update_constant_buffer(CONSTANT_BUFFER_HANDLE& cb_handle, BYTE* buffer, size_t size, size_t offset)
+HRESULT constant_buffers_manager_c::update_constant_buffer(int& buffer_id, BYTE* buffer, size_t size, size_t offset)
 {
-    auto& constant_buffer = constant_buffers_array[cb_handle];
+    auto& constant_buffer = constant_buffers_array[buffer_id];
     return constant_buffer.update_constant_buffer(buffer, size, offset);
-}
-
-
-HRESULT constant_buffers_manager_c::get_cbv_heap(std::vector<CONSTANT_BUFFER_HANDLE>& cb_handle_array, ID3D12DescriptorHeap*& cbv_heap)
-{
-    const CBV_HEAP_ID heap_id(cb_handle_array);
-    if (!is_cbv_heap_available_in_cache(heap_id)) {
-        return create_cbv_heap(heap_id, cb_handle_array, cbv_heap);
-    }
-    cbv_heap = cbv_heap_cache[heap_id.ID_ARRAY.raw];
-    return S_OK;
-}
-
-HRESULT constant_buffers_manager_c::create_cbv_heap(const CBV_HEAP_ID& heap_id, std::vector<CONSTANT_BUFFER_HANDLE>& cb_handle_array, ID3D12DescriptorHeap*& cbv_heap)
-{
-    HRESULT hres;
-
-    D3D12_DESCRIPTOR_HEAP_DESC cbv_heap_desc = {};
-    cbv_heap_desc.NumDescriptors = static_cast<UINT>(cb_handle_array.size());
-    cbv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    cbv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-    CK(d3d_device->CreateDescriptorHeap(&cbv_heap_desc, IID_PPV_ARGS(&cbv_heap)));
-
-    cbv_heap_cache[heap_id.ID_ARRAY.raw] = cbv_heap;
-
-    CD3DX12_CPU_DESCRIPTOR_HANDLE cbv_heap_handle(cbv_heap->GetCPUDescriptorHandleForHeapStart());
-
-    for (const auto& handle : cb_handle_array) {
-        auto& constant_buffer = constant_buffers_array[handle];
-
-        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc;
-        cbvDesc.BufferLocation = constant_buffer.GetGPUVirtualAddress();
-        cbvDesc.SizeInBytes    = static_cast<UINT>(constant_buffer.get_size());
-        d3d_device->CreateConstantBufferView(&cbvDesc, cbv_heap_handle);
-
-        cbv_heap_handle.Offset(d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
-    }
-    return S_OK;
 }
 
 
