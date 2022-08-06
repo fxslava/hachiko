@@ -51,6 +51,10 @@ endif()
 include_directories(
 	core/
 	core/common
+	api/include
+	platform
+
+	# ThirdParty libraries
 	core/thirdparty/directx
 	core/thirdparty/wsl
 	core/thirdparty/dxguids
@@ -58,8 +62,10 @@ include_directories(
 	core/thirdparty/directxmath/Inc
 	core/thirdparty/directxmath/Extensions
 	core/thirdparty/directxmath/SHMath
-	api/include
-	platform
+
+	# ImGUI
+	./core/thirdparty/imgui/
+	./core/thirdparty/imgui/backends
 )
 
 file(
@@ -76,11 +82,23 @@ file(
 		./core/shader_pass.cpp
 		./core/terrain_render_pass.cpp
 		./core/common/utils.cpp
-		./core/thirdparty/d3d12memalloc/D3D12MemAlloc.cpp
 		./api/src/camera.cpp
 		./api/src/hachiko_api.cpp
 		./api/src/game_actors.cpp
 		./api/src/input_controller_api.cpp
+
+		# ThirdParty libraries
+		./core/thirdparty/d3d12memalloc/D3D12MemAlloc.cpp
+)
+
+file(
+	GLOB SRC_IMGUI
+		./core/thirdparty/imgui/backends/imgui_impl_dx12.cpp
+		./core/thirdparty/imgui/backends/imgui_impl_win32.cpp
+		./core/thirdparty/imgui/imgui.cpp
+		./core/thirdparty/imgui/imgui_draw.cpp
+		./core/thirdparty/imgui/imgui_tables.cpp
+		./core/thirdparty/imgui/imgui_widgets.cpp
 )
 
 set(
@@ -91,8 +109,10 @@ set(
 add_library(
 	${PROJECT_NAME}
 	${SOURCES}
+	${SRC_IMGUI}
 	${HLSL_SHADER_FILES}
 	)
+
 add_dependencies(${PROJECT_NAME} shaders)
 target_precompile_headers(
 	${PROJECT_NAME}
@@ -114,3 +134,5 @@ target_link_libraries(
 	
 target_include_directories(${PROJECT_NAME} PRIVATE .)
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "libs")
+
+source_group("imgui" FILES ${SRC_IMGUI})

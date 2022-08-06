@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <array>
+#include <queue>
 #include <map>
 #include <mutex>
 #include <fstream>
@@ -23,6 +24,8 @@
 #include <thread>
 #include <atomic>
 #include <concurrent_queue.h>
+
+//boost
 
 // Third party libs
 #include "d3dx12.h"

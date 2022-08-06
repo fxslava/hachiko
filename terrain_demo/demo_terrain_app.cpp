@@ -50,8 +50,18 @@ HRESULT demo_terrain_app_c::create_pipline(D3D_FEATURE_LEVEL feature_level) {
 
     auto& engine = engine_c::get_instance();
 
+    TERRAIN_DESC terrain_desc{};
+    terrain_desc.dimension_x = 8;
+    terrain_desc.dimension_y = 8;
+    terrain_desc.min_height = 0.0f;
+    terrain_desc.max_height = 100.0f;
+    terrain_desc.origin_x = 160.0f;
+    terrain_desc.origin_y = 10.0f;
+    terrain_desc.origin_z = 160.0f;
+    terrain_desc.tile_size = 40.0f;
+
     CK(engine.init_sub_systems(1920, 1080, feature_level, wnd_handle));
-    CK(terrain.allocate_resources());
+    CK(terrain.allocate_resources(terrain_desc));
 
     // get subsystems pointers
     d3d_renderer = engine.get_renderer();

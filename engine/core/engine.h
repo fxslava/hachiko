@@ -39,3 +39,22 @@ protected:
     resource_manager_c          resource_manager;
     constant_buffers_manager_c  constant_buffers_manager;
 };
+
+#define INSTANTIATE_GAME_ENGINE \
+	auto& engine = engine_c::get_instance(); \
+	d3d_renderer = engine.get_renderer(); \
+	resource_manager = engine.get_resource_manager(); \
+	constant_buffers_manager = engine.get_constant_buffers_manager();
+
+#define INSTANTIATE_GAME_ENGINE_LOWLEVEL \
+    gpu_allocator = d3d_renderer->get_gpu_allocator(); \
+    d3d_device = d3d_renderer->get_d3d_device();
+
+#define GAME_ENGINE_INSTANCES \
+	renderer_c* d3d_renderer = nullptr; \
+	resource_manager_c* resource_manager = nullptr; \
+	constant_buffers_manager_c* constant_buffers_manager = nullptr;
+
+#define LOWLEVEL_GAME_ENGINE_INSTANCES \
+    D3D12MA::Allocator* gpu_allocator = nullptr; \
+    ID3D12Device* d3d_device = nullptr;
