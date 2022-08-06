@@ -39,6 +39,7 @@ bool cpu_heap_c::allocate(DESCRIPTOR_HEAP_ID& desc_id, int num_descriptors) {
 
 void cpu_heap_c::reset() {
     assert(srv_heap);
+    current_descriptor_id = 0;
     available_descriptors = num_descriptors;
 }
 
