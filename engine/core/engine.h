@@ -5,6 +5,8 @@
 #include "gpu_heaps_manager.h"
 #include "constant_buffers_manager.h"
 
+//#define ENABLE_IMGUI
+
 #define INSTANTIATE_GAME_ENGINE \
 	auto& engine = engine_c::get_instance(); \
 	d3d_renderer = engine.get_renderer(); \
@@ -43,7 +45,6 @@ public:
 
     HRESULT init_sub_systems(const UINT width, const UINT height, UINT num_back_buffer_frames, const D3D_FEATURE_LEVEL feature_level, HWND wnd_handle);
     HRESULT prepare_frame(ID3D12GraphicsCommandList* command_list);
-    //HRESULT render_ui(ID3D12GraphicsCommandList* command_list);
     void shut_down();
 
     renderer_c*                 get_renderer()                 { return &d3d_renderer; }
@@ -71,3 +72,6 @@ protected:
 
     DESCRIPTOR_MANAGER_HANDLE   common_cb_handle;
 };
+
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);

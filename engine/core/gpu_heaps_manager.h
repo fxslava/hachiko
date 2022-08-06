@@ -11,7 +11,7 @@ using namespace DirectX;
 using Microsoft::WRL::ComPtr;
 
 struct DESCRIPTOR_HEAP_ID {
-	int id = 0;
+	int descriptor_idx = 0;
 	bool static_descriptor = true;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE handle;
 };
@@ -98,9 +98,9 @@ public:
 
 	CD3DX12_GPU_DESCRIPTOR_HANDLE get_gpu_descriptor_handle(DESCRIPTOR_HEAP_ID descriptor_id) {
 		auto heap = gpu_heap.get_descriptor_heap();
-		int offset = descriptor_id.id;
+		int offset = descriptor_id.descriptor_idx;
 		if (!descriptor_id.static_descriptor) {
-			offset += current_descriptor_id.id;
+			offset += current_descriptor_id.descriptor_idx;
 		}
 		return CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->GetGPUDescriptorHandleForHeapStart(), offset, descriptor_size);
 	}

@@ -34,6 +34,10 @@ public:
 	virtual LRESULT on_wm_mousewheel(WPARAM wParam, LPARAM lParam) { return mouse_keyboard_input_controller->on_wm_mousewheel(wParam, lParam); }		// WM_MOUSEWHEEL
 	virtual LRESULT on_wm_mousemove(WPARAM wParam, LPARAM lParam) { return mouse_keyboard_input_controller->on_wm_mousemove(wParam, lParam); }			// WM_MOUSEMOVE
 
+	virtual LRESULT custom_wnd_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
+		return false;
+	}
+
 private:
 	static LRESULT CALLBACK wnd_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 	virtual const WCHAR* get_class_name() const { return L"Hachico Application"; }

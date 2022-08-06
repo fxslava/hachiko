@@ -51,6 +51,10 @@ void wnd_app_c::create_window(HINSTANCE instance, HINSTANCE prev_instance, LPSTR
 LRESULT CALLBACK wnd_app_c::wnd_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     auto wnd = reinterpret_cast<wnd_app_c*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+
+    if (wnd && wnd->custom_wnd_proc(hWnd, message, wParam, lParam))
+        return true;
+
     switch (message)
     {
     case WM_CREATE:

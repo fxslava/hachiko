@@ -21,7 +21,9 @@ HRESULT engine_c::init_sub_systems(const UINT width, const UINT height, UINT num
 
     gpu_heaps_manager.create(num_back_buffer_frames);
 
+#ifdef ENABLE_IMGUI
     CK(init_imgui(wnd_handle, num_back_buffer_frames));
+#endif
 
     return S_OK;
 }   
@@ -29,6 +31,7 @@ HRESULT engine_c::init_sub_systems(const UINT width, const UINT height, UINT num
 
 HRESULT engine_c::init_imgui(HWND wnd_handle, UINT num_back_buffer_frames) 
 {
+#ifdef ENABLE_IMGUI
     auto imgui_srv_desc_handle = gpu_heaps_manager.static_alloc(1);
 
     // Setup Dear ImGui context
@@ -48,6 +51,7 @@ HRESULT engine_c::init_imgui(HWND wnd_handle, UINT num_back_buffer_frames)
         DXGI_FORMAT_R8G8B8A8_UNORM, imgui_srv_desc_handle.p_heap,
         imgui_srv_desc_handle.cpu_handle,
         imgui_srv_desc_handle.gpu_handle);
+#endif
 
     return S_OK;
 }
@@ -55,12 +59,25 @@ HRESULT engine_c::init_imgui(HWND wnd_handle, UINT num_back_buffer_frames)
 
 void engine_c::shut_down()
 {
+#ifdef ENABLE_IMGUI
+    // Cleanup
+    ImGui_ImplDX12_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
+#endif
+
     resource_manager.destroy_resource_factory();
 }
 
 
 HRESULT engine_c::prepare_frame(ID3D12GraphicsCommandList* command_list)
 {
+#ifdef ENABLE_IMGUI
+    ImGui_ImplDX12_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+#endif
+
     HRESULT hres = constant_buffers_manager.update_constant_buffer(common_engine_cb_handle, reinterpret_cast<BYTE*>(&common_engine_cb), sizeof(common_engine_cb));
     constant_buffers_manager.copy_buffers_on_gpu(command_list);
 

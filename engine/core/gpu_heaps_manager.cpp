@@ -26,9 +26,9 @@ HRESULT cpu_heap_c::create(int num_descriptors_, D3D12_DESCRIPTOR_HEAP_TYPE heap
 bool cpu_heap_c::allocate(DESCRIPTOR_HEAP_ID& desc_id, int num_descriptors) {
     assert(srv_heap);
     if (available_descriptors >= num_descriptors) {
-        current_cpu_descriptor_handle.Offset(desc_id.id, descriptor_size);
+        current_cpu_descriptor_handle.Offset(desc_id.descriptor_idx, descriptor_size);
         desc_id.handle = current_cpu_descriptor_handle;
-        desc_id.id = current_descriptor_id;
+        desc_id.descriptor_idx = current_descriptor_id;
         current_descriptor_id += num_descriptors;
         available_descriptors -= num_descriptors;
         return true;
@@ -105,7 +105,7 @@ void gpu_heap_allocator_c::init(int _descriptors_chunk_size, D3D12_DESCRIPTOR_HE
 
 
 void gpu_heap_allocator_c::reset() {
-    current_descriptor_id.id = 0;
+    current_descriptor_id.descriptor_idx = 0;
     for (auto& heap : dynamic_heaps) {
         heap.reset();
     }
@@ -116,7 +116,7 @@ DESCRIPTOR_HEAP_ID gpu_heap_allocator_c::dynamic_alloc(int num_descriptors) {
     DESCRIPTOR_HEAP_ID handle = current_descriptor_id;
     handle.static_descriptor = false;
 
-    current_descriptor_id.id += num_descriptors;
+    current_descriptor_id.descriptor_idx += num_descriptors;
 
     auto& heaps = dynamic_heaps;
 
@@ -170,11 +170,11 @@ DESCRIPTOR_MANAGER_HANDLE gpu_heaps_manager_c::static_alloc(int num_descriptors)
     DESCRIPTOR_MANAGER_HANDLE handle;
 
     auto heap = gpu_heap.get_descriptor_heap();
-    handle.cpu_handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(heap->GetCPUDescriptorHandleForHeapStart(), current_descriptor_id.id, descriptor_size);
-    handle.gpu_handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->GetGPUDescriptorHandleForHeapStart(), current_descriptor_id.id, descriptor_size);
+    handle.cpu_handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(heap->GetCPUDescriptorHandleForHeapStart(), current_descriptor_id.descriptor_idx, descriptor_size);
+    handle.gpu_handle = CD3DX12_GPU_DESCRIPTOR_HANDLE(heap->GetGPUDescriptorHandleForHeapStart(), current_descriptor_id.descriptor_idx, descriptor_size);
     handle.p_heap = heap;
 
-    current_descriptor_id.id += num_descriptors;
+    current_descriptor_id.descriptor_idx += num_descriptors;
     return handle;
 }
 
@@ -196,7 +196,7 @@ void gpu_heaps_manager_c::assembly_heaps_current_list() {
 void gpu_heaps_manager_c::next_frame() {
     assembly_heaps_current_list();
 
-    gpu_heap.flush_heaps(current_descriptor_id.id, current_heaps);
+    gpu_heap.flush_heaps(current_descriptor_id.descriptor_idx, current_heaps);
 
     dynamic_heap_pool.reset();
 

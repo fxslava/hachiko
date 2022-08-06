@@ -18,8 +18,10 @@ public:
 	HRESULT prepare_frame(ID3D12GraphicsCommandList* command_list);
 	HRESULT update(ID3D12GraphicsCommandList* command_list);
 	HRESULT on_render();
+	LRESULT custom_wnd_proc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 	void on_destroy();
+	void render_ui();
 	int render_loop();
 
 private:

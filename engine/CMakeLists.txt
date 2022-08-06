@@ -100,6 +100,7 @@ file(
 		./core/thirdparty/imgui/imgui_draw.cpp
 		./core/thirdparty/imgui/imgui_tables.cpp
 		./core/thirdparty/imgui/imgui_widgets.cpp
+		./core/thirdparty/imgui/imgui_demo.cpp
 )
 
 set(
