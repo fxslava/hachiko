@@ -7,6 +7,8 @@
 
 void terrain_grid::init(XMINT2 dimensions_, XMFLOAT3 origin_, float tile_size_, float min_height_, float max_height_)
 {
+    INSTANTIATE_GAME_ENGINE
+
     assert(dimensions_.x > 0);
     assert(dimensions_.y > 0);
 
@@ -19,19 +21,9 @@ void terrain_grid::init(XMINT2 dimensions_, XMFLOAT3 origin_, float tile_size_, 
     const int terrain_tiles_num = dimensions.x * dimensions.y;
     tile_lod.resize(terrain_tiles_num);
     tile_lifetime.resize(terrain_tiles_num);
-    transitions_pool.resize(terrain_tiles_num);
 
     std::fill(tile_lod.begin(), tile_lod.end(), -1);
     std::fill(tile_lifetime.begin(), tile_lifetime.end(), -1);
-}
-
-
-void terrain_grid::push_tile_state_transition(int tile_idx, int old_lod, int new_lod) {
-    auto& transition = transitions_pool[tile_idx];
-    transition.tile_id = tile_idx;
-    transition.old_lod = old_lod;
-    transition.new_lod = new_lod;
-    transitions.push(&transition);
 }
 
 
@@ -53,14 +45,14 @@ void terrain_grid::update_lods(XMFLOAT3 cam_pos)
             const int old_lod = tile_lod[tile_idx];
 
             if (new_lod != old_lod) {
-                push_tile_state_transition(tile_idx, old_lod, new_lod);
+                push_tile_state_transition(row, col, old_lod, new_lod);
             }
 
             if (distance_tile_to_camera > TERRAIN_TILE_MAX_DISTANCE) {
                 auto& lifetime = tile_lifetime[tile_idx];
                 if (++lifetime > TERRAIN_TILE_MAX_LIFETIME) {
                     lifetime = TERRAIN_TILE_MAX_LIFETIME;
-                    push_tile_state_transition(tile_idx, old_lod, -1);
+                    push_tile_state_transition(row, col, old_lod, -1);
                 }
             }
         }
@@ -68,13 +60,11 @@ void terrain_grid::update_lods(XMFLOAT3 cam_pos)
 }
 
 
-terrain_grid::TILE_STATE_TRANSITION* terrain_grid::pop_lod_transition() {
-    if (!transitions.empty()) {
-        auto state_transtition = transitions.front();
-        transitions.pop();
-        return state_transtition;
-    }
-    return nullptr;
+void terrain_grid::push_tile_state_transition(int tile_row, int tile_col, int old_lod, int new_lod) {
+
+    const std::string resource_name = std::format("sample_terrain/image_x{}_y{}.bmp", tile_row, tile_col);
+
+    resource_manager->query_resource(resource_name);
 }
 
 
@@ -83,22 +73,24 @@ HRESULT terrain_base_c::allocate_resources(const TERRAIN_DESC& desc)
     INSTANTIATE_GAME_ENGINE
     INSTANTIATE_GAME_ENGINE_LOWLEVEL
 
+    XMStoreFloat3x4(&object_mat, XMMatrixIdentity());
+
     HRESULT hres = S_OK;
     CK(terrain_render_pass.create_pso(d3d_renderer));
 
-    terrain_origin = XMFLOAT3(desc.origin_x, desc.origin_y, desc.origin_z);
+    terrain_origin = XMFLOAT3A(desc.origin_x, desc.origin_y, desc.origin_z);
     terrain_dimensions = XMINT2(desc.dimension_x, desc.dimension_y);
     tile_size = desc.tile_size;
     min_height = desc.min_height;
     max_height = desc.max_height;
-
-    constant_buffers_manager->create_constant_buffer(common_terrain_cb_handle, L"COMMON_TERRAIN", sizeof(common_terrain_cb));
     update_constant_buffer();
 
     grid.init(terrain_dimensions, terrain_origin, tile_size, min_height, max_height);
 
-    constant_buffers_handles = gpu_heaps_manager->static_alloc(2);
-    auto& cpu_handle = constant_buffers_handles.cpu_handle;
+    constant_buffers_manager->create_constant_buffer(common_terrain_cb_handle, L"COMMON_TERRAIN", sizeof(common_terrain_cb));
+
+    constant_buffers_handlers = gpu_heaps_manager->static_alloc(2);
+    auto& cpu_handle = constant_buffers_handlers.cpu_handle;
     int descriptor_size = d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     // Common Engine CBV
@@ -167,7 +159,7 @@ HRESULT terrain_base_c::prepare_frame(ID3D12GraphicsCommandList* command_list)
 
 HRESULT terrain_base_c::update(ID3D12GraphicsCommandList* command_list)
 {
-    auto gpu_handle = constant_buffers_handles.gpu_handle;
+    auto gpu_handle = constant_buffers_handlers.gpu_handle;
 
     terrain_render_pass.setup(command_list);
     command_list->SetGraphicsRootDescriptorTable(0, CD3DX12_GPU_DESCRIPTOR_HANDLE(gpu_handle, 1, d3d_device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)));
@@ -178,4 +170,13 @@ HRESULT terrain_base_c::update(ID3D12GraphicsCommandList* command_list)
     }
 
     return S_OK;
+}
+
+
+XMVECTOR terrain_base_c::project_point_on_terrain(CXMVECTOR point) {
+    XMVECTOR org    = XMLoadFloat3(&terrain_origin);
+    XMVECTOR minDim = XMVectorSet(0.f, min_height, 0.f, 0.f);
+    XMVECTOR maxDim = XMVectorSet(terrain_dimensions.x * tile_size, max_height, terrain_dimensions.y * tile_size, 0.f);
+    XMVECTOR terrain_pos = point - org;
+    return XMVectorClamp(terrain_pos, minDim, maxDim);
 }

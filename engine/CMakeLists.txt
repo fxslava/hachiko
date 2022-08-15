@@ -1,6 +1,6 @@
 project(hachiko_engine_lib)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 # Build HLSL shaders
 set(HLSL_SHADER_FILES 
@@ -69,6 +69,14 @@ include_directories(
 )
 
 file(
+	GLOB SRC_API
+		./api/src/camera.cpp
+		./api/src/hachiko_api.cpp
+		./api/src/game_actors.cpp
+		./api/src/input_controller_api.cpp
+)
+
+file(
     GLOB SOURCES
 		./platform/wnd_app.cpp
 		./core/image.cpp
@@ -83,12 +91,10 @@ file(
 		./core/shader_pass.cpp
 		./core/terrain_render_pass.cpp
 		./core/common/utils.cpp
-		./api/src/camera.cpp
-		./api/src/hachiko_api.cpp
-		./api/src/game_actors.cpp
-		./api/src/input_controller_api.cpp
+)
 
-		# ThirdParty libraries
+file(
+	GLOB SRC_THIRDPARTY
 		./core/thirdparty/d3d12memalloc/D3D12MemAlloc.cpp
 )
 
@@ -110,8 +116,10 @@ set(
 
 add_library(
 	${PROJECT_NAME}
+	${SRC_API}
 	${SOURCES}
 	${SRC_IMGUI}
+	${SRC_THIRDPARTY}
 	${HLSL_SHADER_FILES}
 	)
 
@@ -137,4 +145,6 @@ target_link_libraries(
 target_include_directories(${PROJECT_NAME} PRIVATE .)
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER "libs")
 
-source_group("imgui" FILES ${SRC_IMGUI})
+source_group("ImGui" FILES ${SRC_IMGUI})
+source_group("ThirdParty" FILES ${SRC_THIRDPARTY})
+source_group("api" FILES ${SRC_API})

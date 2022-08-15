@@ -14,6 +14,7 @@ HRESULT constant_buffer_c::allocate(const std::wstring name, size_t size)
 	HRESULT hres;
 
     buffer_size = ALIGN_CB(size);
+	auto buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(buffer_size);
 
 	const std::wstring upload_buffer_name = name + std::wstring(L"_UPLOAD_CB");
 	const std::wstring buffer_name = name + std::wstring(L"_CB");
@@ -24,7 +25,7 @@ HRESULT constant_buffer_c::allocate(const std::wstring name, size_t size)
 	ComPtr<ID3D12Resource> constant_buffer_resource_upload;
 	CK(gpu_allocator->CreateResource(
 		&constant_buffer_desc,
-		&CD3DX12_RESOURCE_DESC::Buffer(buffer_size),
+		&buffer_desc,
 		D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, &gpu_upload_buffer, IID_PPV_ARGS(&constant_buffer_resource_upload)));
 	constant_buffer_resource_upload->SetName(upload_buffer_name.c_str());
 
@@ -32,7 +33,7 @@ HRESULT constant_buffer_c::allocate(const std::wstring name, size_t size)
 	ComPtr<ID3D12Resource> constant_buffer_resource;
 	CK(gpu_allocator->CreateResource(
 		&constant_buffer_desc,
-		&CD3DX12_RESOURCE_DESC::Buffer(buffer_size),
+		&buffer_desc,
 		D3D12_RESOURCE_STATE_COPY_DEST, nullptr, &gpu_buffer, IID_PPV_ARGS(&constant_buffer_resource)));
 	constant_buffer_resource->SetName(buffer_name.c_str());
 
@@ -57,8 +58,9 @@ HRESULT constant_buffer_c::update_constant_buffer(BYTE* buffer, size_t size, siz
 
 void constant_buffer_c::copy_buffer_on_gpu(ID3D12GraphicsCommandList* command_list)
 {
+	auto transition = CD3DX12_RESOURCE_BARRIER::Transition(gpu_buffer->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER);
     command_list->CopyResource(gpu_buffer->GetResource(), gpu_upload_buffer->GetResource());
-    command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(gpu_buffer->GetResource(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER));
+    command_list->ResourceBarrier(1, &transition);
 }
 
 HRESULT constant_buffers_manager_c::create_constant_buffer(int& buffer_id, std::wstring name, size_t size)

@@ -97,6 +97,7 @@ HRESULT demo_terrain_app_c::prepare_frame(ID3D12GraphicsCommandList* command_lis
 
 
 void demo_terrain_app_c::render_ui() {
+#ifdef ENABLE_IMGUI
     static bool show_demo_window = true;
     static bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -140,6 +141,7 @@ void demo_terrain_app_c::render_ui() {
 
     // Rendering
     ImGui::Render();
+#endif
 }
 
 

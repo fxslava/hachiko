@@ -53,7 +53,8 @@ HRESULT renderer_c::begin_render(ID3D12GraphicsCommandList** command_list)
     HRESULT hres;
     CK(render_command_allocator->Reset());
     CK(d3d_render_command_list->Reset(render_command_allocator.Get(), nullptr));
-    d3d_render_command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(d3d_render_targets[frame_idx].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
+    auto transition = CD3DX12_RESOURCE_BARRIER::Transition(d3d_render_targets[frame_idx].Get(), D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+    d3d_render_command_list->ResourceBarrier(1, &transition);
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(d3d_rtv_heap->GetCPUDescriptorHandleForHeapStart(), frame_idx, rtv_desc_size);
     D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = d3d_dsv_heap->GetCPUDescriptorHandleForHeapStart();
@@ -99,7 +100,8 @@ HRESULT renderer_c::clear_render_target(float clear_color[4])
 
 HRESULT renderer_c::end_render(ID3D12GraphicsCommandList* command_list) {
     HRESULT hres;
-    d3d_render_command_list->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(d3d_render_targets[frame_idx].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
+    auto transition = CD3DX12_RESOURCE_BARRIER::Transition(d3d_render_targets[frame_idx].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
+    d3d_render_command_list->ResourceBarrier(1, &transition);
     CK(d3d_render_command_list->Close());
 
     // Execute the command list.
@@ -213,15 +215,17 @@ HRESULT renderer_c::create_depth_buffer()
     D3D12MA::ALLOCATION_DESC depth_buffer_desc = {};
     depth_buffer_desc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 
+    auto depth_text2d_desc = CD3DX12_RESOURCE_DESC::Tex2D(
+        DXGI_FORMAT_D24_UNORM_S8_UINT,
+        screen_resolution.x,
+        screen_resolution.y,
+        1, 0, 1, 0,
+        D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
+
     ComPtr<ID3D12Resource> d3d_depth_buffer_resource;
     CK(gpu_allocator->CreateResource(
         &depth_buffer_desc,
-        &CD3DX12_RESOURCE_DESC::Tex2D(
-            DXGI_FORMAT_D24_UNORM_S8_UINT, 
-            screen_resolution.x, 
-            screen_resolution.y,
-            1,0,1,0,
-            D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL),
+        &depth_text2d_desc,
         D3D12_RESOURCE_STATE_DEPTH_WRITE, &depthOptimizedClearValue, &d3d_depth_buffer, IID_PPV_ARGS(&d3d_depth_buffer_resource)));
 
     D3D12_DEPTH_STENCIL_VIEW_DESC dsvView = {};

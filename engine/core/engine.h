@@ -69,9 +69,8 @@ protected:
     resource_manager_c          resource_manager;
     gpu_heaps_manager_c         gpu_heaps_manager;
     constant_buffers_manager_c  constant_buffers_manager;
-
-    DESCRIPTOR_MANAGER_HANDLE   common_cb_handle;
 };
 
-// Forward declare message handler from imgui_impl_win32.cpp
+#ifdef ENABLE_IMGUI
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#endif

@@ -261,11 +261,14 @@ HRESULT wic_image_loader_c::upload_texture_image(
 
     upload_resource->Unmap(0, nullptr);
 
+    auto dst = CD3DX12_TEXTURE_COPY_LOCATION(resource->GetResource(), subResourceIndex);
+    auto src = CD3DX12_TEXTURE_COPY_LOCATION(upload_resource, placed_footprint);
+
     placed_footprint.Offset = allocation.gpu_pointer;
     command_list->CopyTextureRegion(
-        &CD3DX12_TEXTURE_COPY_LOCATION(resource->GetResource(), subResourceIndex),
+        &dst,
         0, 0, 0, 
-        &CD3DX12_TEXTURE_COPY_LOCATION(upload_resource, placed_footprint),
+        &src,
         nullptr);
 
     payload.allocation = allocation;

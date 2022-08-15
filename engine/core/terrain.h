@@ -32,18 +32,12 @@ public:
 	void init(XMINT2 dimensions_, XMFLOAT3 origin_, float tile_size_, float min_height_, float max_height_);
 	void update_lods(XMFLOAT3 cam_pos);
 
-	struct TILE_STATE_TRANSITION {
-		int tile_id;
-		int old_lod;
-		int new_lod;
-	};
-
-	TILE_STATE_TRANSITION* pop_lod_transition();
+private:
+	void push_tile_state_transition(int tile_row, int tile_col, int old_lod, int new_lod);
 
 private:
-	void push_tile_state_transition(int tile_idx, int old_lod, int new_lod);
+	GAME_ENGINE_INSTANCES
 
-private:
 	float    min_height = 0.0f;
 	float    max_height = 0.0f;
 	XMINT2   dimensions = { 0, 0 };
@@ -52,8 +46,6 @@ private:
 
 	std::vector<int> tile_lod;
 	std::vector<int> tile_lifetime;
-	std::vector<TILE_STATE_TRANSITION> transitions_pool;
-	std::queue<TILE_STATE_TRANSITION*> transitions;
 };
 
 class terrain_base_c : public terrain_i
@@ -68,12 +60,14 @@ public:
 
 protected:
 	void update_constant_buffer();
+	XMVECTOR project_point_on_terrain(CXMVECTOR point);
 
 protected:
 	GAME_ENGINE_INSTANCES
 	LOWLEVEL_GAME_ENGINE_INSTANCES
 
-	XMFLOAT3 terrain_origin = { 0.f, 0.f, 0.f };
+	XMFLOAT3X4A object_mat;
+	XMFLOAT3A terrain_origin = { 0.f, 0.f, 0.f };
 	XMINT2 terrain_dimensions = { 0, 0 };
 	float tile_size = 1.f;
 	float min_height = 0.f;
@@ -99,6 +93,6 @@ protected:
 
 	bool srv_heap_not_empty = false;
 
-	DESCRIPTOR_MANAGER_HANDLE constant_buffers_handles;
+	DESCRIPTOR_MANAGER_HANDLE constant_buffers_handlers;
 	DESCRIPTOR_HEAP_ID srv_descriptor_id{};
 };
