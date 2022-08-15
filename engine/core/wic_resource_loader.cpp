@@ -193,8 +193,8 @@ XMINT2 get_texture_size_appropriate_mip(int mip_level, int width, int height) {
 }
 
 HRESULT wic_image_loader_c::upload_texture_image(
-    ID3D12Device* device, 
-    ID3D12GraphicsCommandList* command_list, 
+    ID3D12Device* device,
+    ID3D12GraphicsCommandList* command_list,
     const wic_image_c& image,
     int mip_level_id,
     int layer_id,
@@ -203,7 +203,7 @@ HRESULT wic_image_loader_c::upload_texture_image(
     int max_mips,
     D3D12MA::Allocation*& resource,
     D3D12_RESOURCE_DESC& desc,
-    payload_t& payload)
+    D3D12MA::Allocation*& upload_buffer)
 {
     HRESULT hres;
 
@@ -221,23 +221,35 @@ HRESULT wic_image_loader_c::upload_texture_image(
         CK(d3d_allocator->CreateResource(&alloc_desc, &desc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, &resource, IID_PPV_ARGS(&texture_resource)));
         texture_resource->SetName(std::wstring(resource_name.begin(), resource_name.end()).c_str());
     }
-    
+
     UINT64 texture_upload_buffer_size = 0;
-	UINT numRows;
+    UINT numRows;
     UINT64 rowSize;
-	D3D12_PLACED_SUBRESOURCE_FOOTPRINT placed_footprint;
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT placed_footprint;
 
     const int subResourceIndex = mip_level_id + (layer_id * desc.MipLevels);
 
-	device->GetCopyableFootprints(&desc, subResourceIndex, 1, 0, &placed_footprint, &numRows, &rowSize, &texture_upload_buffer_size);
+    device->GetCopyableFootprints(&desc, subResourceIndex, 1, 0, &placed_footprint, &numRows, &rowSize, &texture_upload_buffer_size);
 
-    const auto allocation      = alloc_ring(texture_upload_buffer_size);
-    const auto upload_resource = upload_ring_buffer->GetResource();
+    D3D12MA::ALLOCATION_DESC alloc_desc = {};
+    alloc_desc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
+    alloc_desc.CustomPool = nullptr;
+    alloc_desc.ExtraHeapFlags = D3D12_HEAP_FLAG_NONE;
+    alloc_desc.Flags = D3D12MA::ALLOCATION_FLAG_NONE;
+
+    const D3D12_RESOURCE_DESC upload_buffer_desc = CD3DX12_RESOURCE_DESC::Buffer(texture_upload_buffer_size);
+
+    ID3D12Resource* upload_resource = nullptr;
+    CK(d3d_allocator->CreateResource(&alloc_desc, &upload_buffer_desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, &upload_buffer, IID_PPV_ARGS(&upload_resource)));
+
+    std::wstring base_name = std::wstring(resource_name.begin(), resource_name.end());
+    std::wstring upload_subresource_name = std::format(L"{}_mip{}_level{}", base_name, mip_level_id, layer_id);
+    upload_resource->SetName(upload_subresource_name.c_str());
 
     const D3D12_PLACED_SUBRESOURCE_FOOTPRINT& subResourceLayout = placed_footprint;
     const uint64_t subResourceHeight = numRows;
-    const uint64_t subResourcePitch  = subResourceLayout.Footprint.RowPitch; // align by D3D12_TEXTURE_DATA_PITCH_ALIGNMENT??
-    const uint64_t subResourceDepth  = subResourceLayout.Footprint.Depth;
+    const uint64_t subResourcePitch = subResourceLayout.Footprint.RowPitch; // align by D3D12_TEXTURE_DATA_PITCH_ALIGNMENT??
+    const uint64_t subResourceDepth = subResourceLayout.Footprint.Depth;
     const uint64_t pitch = std::min(static_cast<uint64_t>(image.get_stride()), subResourcePitch);
 
     assert(desc.Format == image.get_format());
@@ -248,11 +260,10 @@ HRESULT wic_image_loader_c::upload_texture_image(
     CD3DX12_RANGE read_range(0, 0);
     CK(upload_resource->Map(0, &read_range, reinterpret_cast<void**>(&upload_memory)));
 
-    BYTE* destinationSubResourceMemory = upload_memory + allocation.gpu_pointer;
+    BYTE* destinationSubResourceMemory = upload_memory;
     for (uint64_t sliceIndex = 0; sliceIndex < subResourceDepth; sliceIndex++) {
         const BYTE* sourceSubResourceMemory = image.get_image_data();
-        for (int height = 0; height < subResourceHeight; height++)
-        {
+        for (int height = 0; height < subResourceHeight; height++) {
             memcpy(destinationSubResourceMemory, sourceSubResourceMemory, pitch);
             destinationSubResourceMemory += subResourcePitch;
             sourceSubResourceMemory += image.get_stride();
@@ -264,14 +275,7 @@ HRESULT wic_image_loader_c::upload_texture_image(
     auto dst = CD3DX12_TEXTURE_COPY_LOCATION(resource->GetResource(), subResourceIndex);
     auto src = CD3DX12_TEXTURE_COPY_LOCATION(upload_resource, placed_footprint);
 
-    placed_footprint.Offset = allocation.gpu_pointer;
-    command_list->CopyTextureRegion(
-        &dst,
-        0, 0, 0, 
-        &src,
-        nullptr);
-
-    payload.allocation = allocation;
+    command_list->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
 
     return S_OK;
 }

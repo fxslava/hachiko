@@ -52,8 +52,7 @@ void resource_manager_c::init(const fs::path& root) {
 
                 gpu_resources.emplace_back(resource);
                 current_resource_id++;
-            }
-            else {
+            } else {
                 RESOURCE_ID resource_id = resource_registry[resource_name];
                 GPU_RESOURCE& resource = gpu_resources[resource_id];
 
@@ -102,9 +101,9 @@ resource_manager_c::QUERY_RESOURCE_STATE resource_manager_c::query_resource(RESO
     std::lock_guard	guard(resource_lock);
     auto &resource = gpu_resources[resource_id];
 
-    if (resource.state == RESOURCE_NOT_LOADED) 
-    {
+    if (resource.state == RESOURCE_NOT_LOADED) {
         const auto task_num = in_progress_tasks_num++;
+
         if (task_num < RESOURCE_LOADING_CONCURRENT_TASKS_MAX_NUM) {
             auto& task = load_tasks_pool[task_num];
 
@@ -120,13 +119,11 @@ resource_manager_c::QUERY_RESOURCE_STATE resource_manager_c::query_resource(RESO
         }
     }
 
-    if (resource.state == RESOURCE_NOT_EXIST)
-    {
+    if (resource.state == RESOURCE_NOT_EXIST) {
         return NOT_EXIST;
     }
 
-    if (resource.state == RESOURCE_AVAILABLE)
-    {
+    if (resource.state == RESOURCE_AVAILABLE) {
         return AVAILABLE;
     }
 
@@ -134,13 +131,29 @@ resource_manager_c::QUERY_RESOURCE_STATE resource_manager_c::query_resource(RESO
 }
 
 
-resource_manager_c::QUERY_RESOURCE_STATE resource_manager_c::query_resource(const std::string& resource_id)
-{
+resource_manager_c::QUERY_RESOURCE_STATE resource_manager_c::query_resource(const std::string& resource_id) {
     if (is_available(resource_id))
     {
         return query_resource(resource_registry[resource_id]);
     }
     return NOT_EXIST;
+}
+
+
+resource_manager_c::GPU_RESOURCE* resource_manager_c::get_resource(RESOURCE_ID resource_id) {
+    if (gpu_resources[resource_id].state == RESOURCE_AVAILABLE) {
+        return &gpu_resources[resource_id];
+    }
+
+    return nullptr;
+}
+
+resource_manager_c::GPU_RESOURCE* resource_manager_c::get_resource(const std::string& resource_id) {
+    if (!is_available(resource_id)) {
+        return nullptr;
+    }
+
+    return get_resource(resource_registry[resource_id]);
 }
 
 
@@ -194,32 +207,34 @@ HRESULT resource_manager_c::wait_for_resources_uploaded()
 }
 
 
+void resource_manager_c::release_upload_list(std::list<UPLOAD_TASK>& upload_list) {
+    if (!upload_list.empty()) {
+        wait_for_resources_uploaded();
+
+        for (auto& upload : upload_list) {
+            upload.upload_buffer->Release();
+            gpu_resources[upload.resource_id].state = RESOURCE_AVAILABLE;
+        }
+
+        upload_list.clear();
+    }
+}
+
+
 void resource_manager_c::resource_manager_scheduler()
 {
-    std::list<resource_payload_t> payload;
+    ID3D12GraphicsCommandList* upload_command_list = nullptr;
+    std::list<UPLOAD_TASK> upload_list;
 
     bool running = true;
     while (running) {
 
-        if (!payload.empty()) {
-            wait_for_resources_uploaded();
-
-            for (const auto& payload_element : payload) {
-                wic_image_loader.pay(payload_element.texture_payload);
-                gpu_resources[payload_element.resource_id].state = RESOURCE_AVAILABLE;
-            }
-
-            payload.clear();
-        }
-
-        ID3D12GraphicsCommandList* upload_command_list = nullptr;
+        release_upload_list(upload_list);
 
         for (int i = 0; i < RESOURCE_UPLOAD_CHUNK_SIZE; i++) {
             LOAD_QUERY* load_query = nullptr;
-            if (load_tasks.try_pop(load_query))
-            {
+            if (load_tasks.try_pop(load_query)) {
                 if (load_query) {
-
                     if (!upload_command_list) {
                         d3d_renderer->begin_upload_command_list(&upload_command_list);
                     }
@@ -230,7 +245,7 @@ void resource_manager_c::resource_manager_scheduler()
                         auto& subresource = gpu_subresources[subresource_id];
                         wic_image_c image(wic_image_loader, subresource.file_path);
 
-                        wic_image_loader_c::payload_t payload_element;
+                        D3D12MA::Allocation* upload_resource;
                         wic_image_loader.upload_texture_image(
                             d3d_renderer->get_d3d_device(),
                             upload_command_list,
@@ -242,19 +257,16 @@ void resource_manager_c::resource_manager_scheduler()
                             resource.max_num_mip_maps,
                             resource.resource,
                             resource.desc,
-                            payload_element);
+                            upload_resource);
 
-                        payload.push_back(resource_payload_t{ payload_element, load_query->resource_id });
+                        upload_list.push_back(UPLOAD_TASK{ upload_resource, load_query->resource_id });
                     }
                     --in_progress_tasks_num;
-                }
-                else
-                {
+                } else {
                     running = false;
                     break;
                 }
-            } else
-            {
+            } else {
                 break;
             }
         }
@@ -267,14 +279,5 @@ void resource_manager_c::resource_manager_scheduler()
         }
     }
 
-    if (!payload.empty()) {
-        wait_for_resources_uploaded();
-
-        for (const auto& payload_element : payload) {
-            wic_image_loader.pay(payload_element.texture_payload);
-            gpu_resources[payload_element.resource_id].state = RESOURCE_AVAILABLE;
-        }
-
-        payload.clear();
-    }
+    release_upload_list(upload_list);
 }

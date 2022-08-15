@@ -17,22 +17,22 @@ constexpr int RESOURCE_MAX_LAYERS = 256;
 class resource_manager_c
 {
 public:
-	enum RESOURCE_TYPE
-	{
+	using RESOURCE_ID = int32_t;
+	using SUBRESOURCE_ID = int32_t;
+
+	enum RESOURCE_TYPE {
 		UNDEFINED,
 		TEXTURE
 	};
 
-	enum RESOURCE_STATE
-	{
+	enum RESOURCE_STATE {
 		RESOURCE_NOT_EXIST,
 		RESOURCE_NOT_LOADED,
 		RESOURCE_REQUESTED,
 		RESOURCE_AVAILABLE
 	};
 
-	enum QUERY_RESOURCE_STATE
-	{
+	enum QUERY_RESOURCE_STATE {
 		NOT_EXIST,
 		LOADING,
 		AVAILABLE,
@@ -45,8 +45,7 @@ public:
 		int mip_id = 0;
 	};
 
-	struct GPU_RESOURCE
-	{
+	struct GPU_RESOURCE {
 		RESOURCE_STATE state = RESOURCE_NOT_EXIST;
 		D3D12MA::Allocation* resource = nullptr;
 		D3D12_RESOURCE_DESC desc{};
@@ -56,8 +55,10 @@ public:
 		int max_num_mip_maps = 1;
 	};
 
-	using RESOURCE_ID = int32_t;
-	using SUBRESOURCE_ID = int32_t;
+	struct UPLOAD_TASK {
+		D3D12MA::Allocation* upload_buffer;
+		RESOURCE_ID resource_id;
+	};
 
 	void init();
 	void init(const fs::path& root);
@@ -66,28 +67,14 @@ public:
 	HRESULT create_resource_factory(renderer_c* renderer);
 	void destroy_resource_factory();
 	HRESULT wait_for_resources_uploaded();
-	QUERY_RESOURCE_STATE query_resource(RESOURCE_ID resource_id);			 // thread safe
+	QUERY_RESOURCE_STATE query_resource(RESOURCE_ID resource_id);			// thread safe
 	QUERY_RESOURCE_STATE query_resource(const std::string& resource_id);    // thread safe
-
-	GPU_RESOURCE* get_resource(RESOURCE_ID resource_id)
-	{
-		if (gpu_resources[resource_id].state == RESOURCE_AVAILABLE) {
-			return &gpu_resources[resource_id];
-		}
-
-		return nullptr;
-	}
-
-	GPU_RESOURCE* get_resource(const std::string& resource_id)
-	{
-		if (!is_available(resource_id)) {
-			return nullptr;
-		}
-
-		return get_resource(resource_registry[resource_id]);
-	}
+	GPU_RESOURCE* get_resource(RESOURCE_ID resource_id);
+	GPU_RESOURCE* get_resource(const std::string& resource_id);
 
 private:
+	void release_upload_list(std::list<UPLOAD_TASK>& upload_list);
+
 	struct RESOURCE_DESC_FROM_NAME {
 		int32_t layer_id = 0;
 		int32_t lod_id = 0;
@@ -134,10 +121,4 @@ private:
 	HANDLE resource_fence_event = 0;
 	UINT64 resource_fence_value = 0;
 	ComPtr<ID3D12Fence> resource_fance;
-
-	struct resource_payload_t
-	{
-		wic_image_loader_c::payload_t texture_payload;
-		RESOURCE_ID resource_id;
-	};
 };
